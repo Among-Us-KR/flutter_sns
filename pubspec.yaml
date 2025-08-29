@@ -35,6 +35,28 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   firebase_core: ^4.0.0
+  flutter_dotenv: ^6.0.0
+  firebase_storage: ^13.0.0
+  cloud_firestore: ^6.0.0
+  firebase_analytics: ^12.0.0
+  firebase_crashlytics: ^5.0.0
+  firebase_messaging: ^16.0.0
+  image_picker: ^1.2.0
+  go_router: ^16.2.0
+  tflite_flutter: ^0.11.0
+  connectivity_plus: ^6.1.5
+  cached_network_image: ^3.4.1
+  google_fonts: ^6.3.1
+  permission_handler: ^12.0.1
+  logger: ^2.6.1
+  flutter_image_compress: ^2.4.0
+  flutter_clean_architecture: ^6.0.2
+  provider: ^6.1.5+1
+  flutter_riverpod: ^2.6.1
+  equatable: ^2.0.7
+  dio: ^5.9.0
+  json_annotation: ^4.9.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -45,7 +67,10 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
+  build_runner: ^2.7.0
+  json_serializable: ^6.11.0
+  mockito: ^5.5.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

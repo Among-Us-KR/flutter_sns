@@ -65,4 +65,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'flutter-sns-80243.firebasestorage.app',
     iosBundleId: 'com.example.flutterSns',
   );
+
 }
