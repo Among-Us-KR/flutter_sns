@@ -1,52 +1,48 @@
-# flutter_sns
+# flutter_sns  
 A new Flutter project.
-
-  
 
 ## 개발 환경
 
-- Flutter 3.35.2
-- Dart 3.9.0
-- 피그마 경로 : https://www.figma.com/design/dX7VbtoBQi5DBEAy0uLspO/Flutter-%EC%8B%AC%ED%99%94-4%EC%A1%B0?node-id=0-1&p=f&t=USO6iZHoWwi8QqTQ-0
-
-  
+- Flutter 3.35.2  
+- Dart 3.9.0  
+- 피그마 경로: [https://www.figma.com/design/dX7VbtoBQi5DBEAy0uLspO/Flutter-%EC%8B%AC%ED%99%94-4%EC%A1%B0?node-id=0-1&p=f&t=USO6iZHoWwi8QqTQ-0](https://www.figma.com/design/dX7VbtoBQi5DBEAy0uLspO/Flutter-%EC%8B%AC%ED%99%94-4%EC%A1%B0?node-id=0-1&p=f&t=USO6iZHoWwi8QqTQ-0)
 
 ## 구조
 
- ```
+```plaintext
 assets/
 ├── images/
 ├── config/
-│ └── .env/
+│   └── .env/
 lib/
-├── core/ // 앱 전반에서 공통으로 쓰이는 설정 및 예외 처리 모음
-│ ├── config/
-│ │ └── dio.dart // Dio HTTP 클라이언트 설정 및 공통 인터셉터 등 구성
-│ └── error/
-│ └── exceptions.dart // 앱에서 발생하는 예외 정의 및 처리용 커스텀 예외 클래스
-├── data/ // 데이터 계층 - 외부 데이터 소스와 통신하고 모델 관리
-│ ├── datasources/
-│ │ └── firebase_storage_datasource.dart // Firebase Storage 관련 API 호출 구현
-│ ├── models/
-│ │ └── upload_model.dart // 데이터 전송 및 저장에 사용되는 모델 클래스 (DTO)
-│ └── repositories/
-│ └── upload_repository_impl.dart // 도메인 레이어에서 정의한 인터페이스 구현체 (데이터 조작)
-├── domain/ // 도메인 계층 - 비즈니스 로직 및 핵심 엔티티 관리
-│ ├── entities/
-│ │ └── upload_entity.dart // 비즈니스 규칙이 담긴 핵심 엔티티 클래스
-│ ├── repositories/
-│ │ └── upload_repository.dart // 추상화된 저장소 인터페이스 정의
-│ └── usecases/
-│ └── upload_image_usecase.dart // 앱의 주요 동작(유즈케이스) 구현 (비즈니스 로직)
+├── core/        // 앱 전반에서 공통으로 쓰이는 설정 및 예외 처리 모음
+│   ├── config/
+│   │   └── dio.dart           // Dio HTTP 클라이언트 설정 및 공통 인터셉터 등 구성
+│   └── error/
+│       └── exceptions.dart    // 앱에서 발생하는 예외 정의 및 처리용 커스텀 예외 클래스
+├── data/        // 데이터 계층 - 외부 데이터 소스와 통신하고 모델 관리
+│   ├── datasources/
+│   │   └── firebase_storage_datasource.dart  // Firebase Storage 관련 API 호출 구현
+│   ├── models/
+│   │   └── upload_model.dart                   // 데이터 전송 및 저장에 사용되는 모델 클래스 (DTO)
+│   └── repositories/
+│       └── upload_repository_impl.dart        // 도메인 레이어에서 정의한 인터페이스 구현체 (데이터 조작)
+├── domain/      // 도메인 계층 - 비즈니스 로직 및 핵심 엔티티 관리
+│   ├── entities/
+│   │   └── upload_entity.dart                  // 비즈니스 규칙이 담긴 핵심 엔티티 클래스
+│   ├── repositories/
+│   │   └── upload_repository.dart              // 추상화된 저장소 인터페이스 정의
+│   └── usecases/
+│       └── upload_image_usecase.dart           // 앱의 주요 동작(유즈케이스) 구현 (비즈니스 로직)
 ├── presentation/ // UI 계층 - 화면, 상태관리, 위젯 등
-│ ├── screens/
-│ │ └── upload_screen.dart // 이미지 업로드 화면 위젯 (페이지 단위)
-│ ├── providers/
-│ │ └── upload_provider.dart // 상태 관리 및 비즈니스 로직과 UI 연결 (예: Provider)
-│ └── widgets/
-│ └── upload_button.dart // 재사용 가능한 UI 컴포넌트 (버튼 등)
-└── main.dart // 앱 진입점, Firebase 초기화 및 라우팅 설정 포함
-```
+│   ├── screens/
+│   │   └── upload_screen.dart                   // 이미지 업로드 화면 위젯 (페이지 단위)
+│   ├── providers/
+│   │   └── upload_provider.dart                 // 상태 관리 및 비즈니스 로직과 UI 연결 (예: Provider)
+│   └── widgets/
+│       └── upload_button.dart                   // 재사용 가능한 UI 컴포넌트 (버튼 등)
+└── main.dart                                   // 앱 진입점, Firebase 초기화 및 라우팅 설정 포함
+
   
   
 
@@ -111,42 +107,41 @@ comments 컬렉션 가지고 올 때 특정 feed에 해당하는 댓글만 가�
 ## 설치된 패키지 (flutter pub deps 로 조회)
 
 ### 🧪 운영(Prd) 전용 패키지 & 도구
+| 목적                    | 패키지명                         | 설치 명령어                                                | 비고/개선 영역                        |
+| --------------------- | ---------------------------- | ----------------------------------------------------- | ------------------------------- |
+| `.env` 파일 읽기          | `flutter_dotenv`             | `flutter pub add flutter_dotenv`                      | 환경변수 관리                         |
+| Firebase 필수 초기화       | `firebase_core`              | `flutter pub add firebase_core`                       | Firebase 기본                     |
+| Firebase 사용자 인증       | `firebase_auth`              | `flutter pub add firebase_auth`                       | 사용자 로그인, 회원가입, 인증 상태 관리         |
+| Firebase 이미지 저장       | `firebase_storage`           | `flutter pub add firebase_storage`                    | 사진, 파일 저장                       |
+| Firebase 데이터베이스       | `cloud_firestore`            | `flutter pub add cloud_firestore`                     | 실시간 DB                          |
+| Firebase 앱 분석         | `firebase_analytics`         | `flutter pub add firebase_analytics`                  | 사용자 행동 분석 (UX 개선)               |
+| Firebase 예외 및 크래시 리포트 | `firebase_crashlytics`       | `flutter pub add firebase_crashlytics`                | 에러 추적 (실시간 모니터링)                |
+| Firebase 푸시 알림        | `firebase_messaging`         | `flutter pub add firebase_messaging`                  | 푸시 알림                           |
+| 이미지 선택 (카메라/갤러리)      | `image_picker`               | `flutter pub add image_picker`                        | 갤러리/카메라 이미지 선택                  |
+| 라우팅 (context.go)      | `go_router`                  | `flutter pub add go_router`                           | 페이지 이동 처리 (라우팅)                 |
+| TensorFlow Lite 실행    | `tflite_flutter`             | `flutter pub add tflite_flutter`                      | AI 모델 실행 (YOLO 포함)              |
+| 앱 네트워크 상태 감지          | `connectivity_plus`          | `flutter pub add connectivity_plus`                   | 인터넷 연결 여부 확인                    |
+| 이미지 캐싱 및 최적화          | `cached_network_image`       | `flutter pub add cached_network_image`                | 이미지 캐싱 및 최적화                    |
+| 앱 내 폰트/글꼴 관리          | `google_fonts`               | `flutter pub add google_fonts`                        | 구글 폰트 사용                        |
+| 앱 권한 요청 관리            | `permission_handler`         | `flutter pub add permission_handler`                  | 권한 요청 관리 (카메라, 저장소 등)           |
+| 로깅 및 디버깅              | `logger`                     | `flutter pub add logger`                              | 개발 단계 로그 관리 및 디버깅 지원            |
+| 이미지 크기 조정             | `flutter_image_compress`     | `flutter pub add flutter_image_compress`              | 이미지 압축 및 리사이징                   |
+| 클린 아키텍처 코드 생성 (CLI)   | `clean_arch_boilerplate_cli` | `dart pub global activate clean_arch_boilerplate_cli` | 클린 아키텍처 기반 프로젝트 자동 생성 (생산성 향상)  |
+| 클린 아키텍처 구현 구조 지원      | `flutter_clean_architecture` | `flutter pub add flutter_clean_architecture`          | 클린 아키텍처 지원 (유지보수 및 확장성 향상)      |
+| 상태관리 (Provider 방식)    | `provider`                   | `flutter pub add provider`                            | 상태관리 (단순하고 직관적)                 |
+| 상태관리 (Riverpod 방식)    | `flutter_riverpod`           | `flutter pub add flutter_riverpod`                    | 상태관리 (강력하고 안전한 구조)              |
+| 객체 비교 편의성             | `equatable`                  | `flutter pub add equatable`                           | 객체 비교 간소화                       |
+| HTTP 통신               | `dio`                        | `flutter pub add dio`                                 | 네트워크 통신 (인터셉터, 로깅 등 고급 기능 지원)   |
+| JSON 직렬화/역직렬화 어노테이션   | `json_annotation`            | `flutter pub add json_annotation`                     | JSON 코드 자동 생성 위한 어노테이션          |
+| 날짜/시간 관리              | `intl`                       | `flutter pub add intl`                                | 날짜, 시간 포맷 및 국제화 지원              |
+| 다국어 지원                | `flutter_localizations`      | Flutter SDK 기본 포함                                     | 앱 내 다국어 지원 (pubspec.yaml 설정 필요) |
 
-|목적|패키지명|설치 명령어|비고/개선 영역|
-|---|---|---|---|
-|`.env` 파일 읽기|`flutter_dotenv`|`flutter pub add flutter_dotenv`|환경변수 관리|
-|Firebase 필수 초기화|`firebase_core`|`flutter pub add firebase_core`|Firebase 기본|
-|Firebase 사용자인증|`firebase_auth` |`flutter pub add firebase_auth` |사용자 로그인, 회원가입, 인증 상태 관리|
-|Firebase 이미지 저장|`firebase_storage`|`flutter pub add firebase_storage`|사진, 파일 저장|
-|Firebase 데이터베이스|`cloud_firestore`|`flutter pub add cloud_firestore`|실시간 DB|
-|Firebase 앱 분석|`firebase_analytics`|`flutter pub add firebase_analytics`|사용자 행동 분석 (UX 개선)|
-|Firebase 예외 및 크래시 리포트|`firebase_crashlytics`|`flutter pub add firebase_crashlytics`|에러 추적 (실시간 모니터링)|
-|Firebase 푸시 알림|`firebase_messaging`|`flutter pub add firebase_messaging`|푸시 알림|
-|이미지 선택 (카메라/갤러리)|`image_picker`|`flutter pub add image_picker`|갤러리/카메라 이미지 선택|
-|라우팅 (context.go)|`go_router`|`flutter pub add go_router`|페이지 이동 처리 (라우팅)|
-|TensorFlow Lite 실행|`tflite_flutter`|`flutter pub add tflite_flutter`|AI 모델 실행 (YOLO 포함)|
-|앱 네트워크 상태 감지|`connectivity_plus`|`flutter pub add connectivity_plus`|인터넷 연결 여부 확인|
-|이미지 캐싱 및 최적화|`cached_network_image`|`flutter pub add cached_network_image`|이미지 캐싱 및 최적화|
-|앱 내 폰트/글꼴 관리|`google_fonts`|`flutter pub add google_fonts`|구글 폰트 사용|
-|앱 권한 요청 관리|`permission_handler`|`flutter pub add permission_handler`|권한 요청 관리 (카메라, 저장소 등)|
-|로깅 및 디버깅|`logger`|`flutter pub add logger`|개발 단계 로그 관리 및 디버깅 지원|
-|이미지 크기 조정|`flutter_image_compress`|`flutter pub add flutter_image_compress`|이미지 압축 및 리사이징|
-|클린 아키텍처 코드 생성 (CLI)|`clean_arch_boilerplate_cli`|`dart pub global activate clean_arch_boilerplate_cli`|클린 아키텍처 기반 프로젝트 자동 생성 (생산성 향상)|
-|클린 아키텍처 구현 구조 지원|`flutter_clean_architecture`|`flutter pub add flutter_clean_architecture`|클린 아키텍처 지원 (유지보수 및 확장성 향상)|
-|상태관리 (Provider 방식)|`provider`|`flutter pub add provider`|상태관리 (단순하고 직관적)|
-|상태관리 (Riverpod 방식)|`flutter_riverpod`|`flutter pub add flutter_riverpod`|상태관리 (강력하고 안전한 구조)|
-|객체 비교 편의성|`equatable`|`flutter pub add equatable`|객체 비교 간소화|
-|HTTP 통신|`dio`|`flutter pub add dio`|네트워크 통신 (인터셉터, 로깅 등 고급 기능 지원)|
-|JSON 직렬화/역직렬화 어노테이션|`json_annotation`|`flutter pub add json_annotation`|JSON 코드 자동 생성 위한 어노테이션|
-| 날짜/시간 관리 | `intl` | `flutter pub add intl` | 날짜, 시간 포맷 및 국제화 지원 |
-| 다국어 지원 | `flutter_localizations` | Flutter SDK 기본 포함 | 앱 내 다국어 지원 (pubspec.yaml 설정 필요) |
-  
 ---
 
-### 🧪 개발(Dev) 전용 패키지 & 도구
+### 🧪 개발(Dev) 전용 패키지 
 
-|목적|패키지명|설치 명령어|비고/개선 영역|
-|---|---|---|---|
+| 목적                    | 패키지명                         | 설치 명령어                                                | 비고/개선 영역                        |
+| --------------------- | ---------------------------- | ----------------------------------------------------- | ------------------------------- |
 |코드 생성 도구 (빌드러너)|`build_runner`|`flutter pub add --dev build_runner`|코드 자동 생성, 생산성 향상|
 |JSON 코드 생성 라이브러리|`json_serializable`|`flutter pub add --dev json_serializable`|JSON 직렬화 코드 자동 생성|
 |테스트 프레임워크 (기본 포함)|`flutter_test`|✅ 기본 포함|유닛 테스트 및 위젯 테스트 자동화 (버그 조기 발견)|
