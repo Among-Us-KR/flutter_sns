@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/profile_header.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/stats_item.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/tab_list/comment_card.dart';
@@ -102,7 +103,9 @@ class _ProfilePageState extends State<ProfilePage>
             margin: const EdgeInsets.only(right: 16),
             child: ElevatedButton(
               onPressed: () {
-                // 수정 버튼 동작
+                // 프로필 편집 페이지로 이동
+                // TODO: 현재 사용자 정보 넘기기(닉네임, 프로필이미지)
+                context.go('/profile/edit');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.secondary,
@@ -148,6 +151,7 @@ class _ProfilePageState extends State<ProfilePage>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Row(
+                      //TODO: Firebase에서 받아온 숫자로 변경
                       children: [
                         Expanded(child: StatsItem(count: 7, label: '던진 글')),
                         SizedBox(width: 7),
@@ -192,6 +196,7 @@ class _ProfilePageState extends State<ProfilePage>
           ),
 
           // 탭 뷰 내용
+          //TODO: 클릭 시 해당 글로 이동하도록 수정 필요
           Expanded(
             child: TabBarView(
               controller: _tabController,

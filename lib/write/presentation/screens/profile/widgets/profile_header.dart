@@ -19,6 +19,7 @@ class ProfileHeader extends StatelessWidget {
             border: Border.all(color: colorScheme.primary, width: 4),
           ),
           child: ClipOval(
+            //TODO: Firebase에서 받아온 프로필 url로 변경
             child: Image.asset(
               'assets/images/profile_placeholder.png',
               fit: BoxFit.cover,
@@ -38,6 +39,7 @@ class ProfileHeader extends StatelessWidget {
         const SizedBox(height: 16),
         // 닉네임
         Text(
+          //TODO: Firebase에서 받아온 닉네임으로 변경
           '화난강쥐',
           style: theme.textTheme.headlineLarge?.copyWith(
             color: colorScheme.onSecondary,

@@ -16,6 +16,14 @@ class StatsItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(10),
+        boxShadow: const [
+          BoxShadow(
+            offset: Offset(0, 4), // X, Y
+            blurRadius: 4, // Blur
+            spreadRadius: 0, // Spread
+            color: Color.fromRGBO(0, 0, 0, 0.10), // #000000, 10%
+          ),
+        ],
       ),
       child: Column(
         children: [
