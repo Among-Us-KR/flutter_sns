@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_sns/theme/theme.dart';
 
 class ProfileEditPage extends StatefulWidget {
-  const ProfileEditPage({Key? key}) : super(key: key);
+  const ProfileEditPage({super.key});
 
   @override
   State<ProfileEditPage> createState() => _ProfileEditPageState();

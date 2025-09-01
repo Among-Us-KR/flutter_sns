@@ -21,7 +21,7 @@ class TabListView<T> extends StatelessWidget {
       return EmptyState(message: emptyMessage, icon: emptyIcon);
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       itemCount: items.length,
       itemBuilder: (context, index) => itemBuilder(items[index]), // <- 래핑
       separatorBuilder: (context, _) => Divider(
