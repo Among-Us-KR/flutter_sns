@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:go_router/go_router.dart';
 
 class PostItem extends StatelessWidget {
   final List<String> imagePaths;
+  final String postId;
   final String username;
   final String caption;
   final int likeCount;
 
   const PostItem({
     super.key,
+    required this.postId,
     required this.imagePaths,
     required this.username,
     required this.caption,
@@ -22,8 +25,7 @@ class PostItem extends StatelessWidget {
       children: [
         _PostImages(imagePaths: imagePaths),
         // 이미지 위에 UI를 올리기 위한 그래디언트 오버레이
-        // IgnorePointer를 사용하여 이 위젯이 터치 이벤트를 가로채지 않도록 합니다.
-        // 이렇게 해야 뒤에 있는 _PostImages 위젯이 스와이프 제스처를 받을 수 있습니다.
+        // IgnorePointer를 사용하여 이 위젯이 터치 이벤트를 가로채지 않도록 함
         IgnorePointer(
           child: Container(
             decoration: BoxDecoration(
@@ -49,7 +51,11 @@ class PostItem extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: 20,
-          child: _PostInfo(username: username, caption: caption),
+          child: _PostInfo(
+            postId: postId,
+            username: username,
+            caption: caption,
+          ),
         ),
       ],
     );
@@ -86,7 +92,7 @@ class _PostImagesState extends State<_PostImages> {
       children: [
         PageView.builder(
           controller: _pageController,
-          // 이미지가 1개일 때는 스크롤되지 않도록 설정합니다.
+          // 이미지가 1개일 때는 스크롤되지 않도록 설정
           physics: hasMultipleImages
               ? const PageScrollPhysics()
               : const NeverScrollableScrollPhysics(),
@@ -188,71 +194,81 @@ class _LikeButtonState extends State<_LikeButton> {
 
 // 하단 정보 위젯
 class _PostInfo extends StatelessWidget {
+  final String postId;
   final String username;
   final String caption;
-  const _PostInfo({required this.username, required this.caption});
+  const _PostInfo({
+    required this.postId,
+    required this.username,
+    required this.caption,
+  });
 
   @override
   Widget build(BuildContext context) {
     const whiteColor = Colors.white;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(radius: 8, backgroundColor: Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                username,
-                style: AppTypography.style(
-                  AppTypography.s12,
-                  weight: AppTypography.bold,
-                  color: whiteColor,
+    // GestureDetector로 감싸서 탭 이벤트를 감지하고, 탭하면 게시물 상세 페이지로 이동
+    return GestureDetector(
+      onTap: () => context.go('/post/$postId'),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.all(12.0),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(radius: 8, backgroundColor: Colors.grey),
+                const SizedBox(width: 8),
+                Text(
+                  username,
+                  style: AppTypography.style(
+                    AppTypography.s12,
+                    weight: AppTypography.bold,
+                    color: whiteColor,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // TODO: 실제 데이터 기반으로 시간 표시
-              Text(
-                '25분 전',
-                style: AppTypography.caption(whiteColor.withOpacity(0.8)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            caption,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.body(whiteColor),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              // TODO: 실제 태그 데이터 표시
-              Text('#대박스', style: AppTypography.labelXS(whiteColor)),
-              const SizedBox(width: 8),
-              Text('#공감해줘', style: AppTypography.labelXS(whiteColor)),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  // TODO: 댓글 화면으로 이동하는 로직 구현
-                },
-                child: Text(
-                  '댓글 10', // TODO: 실제 댓글 수 표시
-                  style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
+                const SizedBox(width: 8),
+                // TODO: 실제 데이터 기반으로 시간 표시
+                Text(
+                  '25분 전',
+                  style: AppTypography.caption(whiteColor.withOpacity(0.8)),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.body(whiteColor),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                // TODO: 실제 태그 데이터 표시
+                Text('#대박스', style: AppTypography.labelXS(whiteColor)),
+                const SizedBox(width: 8),
+                Text('#공감해줘', style: AppTypography.labelXS(whiteColor)),
+                const Spacer(),
+
+                GestureDetector(
+                  onTap: () {
+                    // TODO: 댓글 화면으로 이동하는 로직 구현
+                  },
+                  child: Text(
+                    '댓글 10', // TODO: 실제 댓글 수 표시
+                    style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

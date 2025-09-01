@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sns/write/presentation/widgets/no_glow_scroll_behavior.dart';
 import 'package:flutter_sns/write/presentation/widgets/post_item.dart';
 import 'package:flutter_sns/write/presentation/widgets/top_tab_bar.dart';
 
@@ -20,28 +21,34 @@ class HomePage extends StatelessWidget {
           // -----------------
           // Expanded를 사용하여 PageView가 남은 공간을 모두 차지하도록 합니다.
           Expanded(
-            child: PageView(
-              scrollDirection: Axis.vertical,
-              controller: controller,
-              children: const <Widget>[
-                PostItem(
-                  // 이미지가 여러 장인 경우 (좌우 스와이프 가능)
-                  imagePaths: [
-                    'assets/images/cat_image.jpeg',
-                    'assets/images/dog_image.jpeg',
-                    'assets/images/cat_image.jpeg',
-                  ],
-                  username: '화난강쥐',
-                  caption: '내용내용내용내용내용내용내용내용내용내용내용내용내용내용..',
-                  likeCount: 20,
-                ),
-                PostItem(
-                  imagePaths: ['assets/images/dog_image.jpeg'], // 이미지가 한 장인 경우
-                  username: '웃는강쥐',
-                  caption: '오늘 날씨가 너무 좋아서 산책하고 왔어요! ',
-                  likeCount: 152,
-                ),
-              ],
+            child: ScrollConfiguration(
+              behavior: NoGlowScrollBehavior(),
+              child: PageView(
+                scrollDirection: Axis.vertical,
+                controller: controller,
+                children: const <Widget>[
+                  PostItem(
+                    postId: 'post_1', // 샘플 ID
+                    // 이미지가 여러 장인 경우 (좌우 스와이프 가능)
+                    imagePaths: [
+                      'assets/images/cat_image.jpeg',
+                      'assets/images/dog_image.jpeg',
+                    ],
+                    username: '화난강쥐',
+                    caption: '내용내용내용내용내용내용내용내용내용내용내용내용내용내용..',
+                    likeCount: 20,
+                  ),
+                  PostItem(
+                    postId: 'post_2', // 샘플 ID
+                    imagePaths: [
+                      'assets/images/dog_image.jpeg',
+                    ], // 이미지가 한 장인 경우
+                    username: '웃는강쥐',
+                    caption: '오늘 날씨가 너무 좋아서 산책하고 왔어요! ',
+                    likeCount: 152,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

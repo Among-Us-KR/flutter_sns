@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/presentation/screens/home/contents_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
-import 'package:flutter_sns/write/presentation/screens/post_detail/post_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_page.dart';
 import 'package:flutter_sns/write/presentation/screens/write_page.dart';
@@ -54,7 +54,7 @@ final GoRouter _router = GoRouter(
                   name: 'post_detail',
                   builder: (context, state) {
                     final postId = state.pathParameters['postId']!;
-                    return PostDetailPage(postId: postId);
+                    return ContentsDetailPage(postId: postId);
                   },
                 ),
               ],
