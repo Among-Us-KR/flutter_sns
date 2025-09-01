@@ -34,6 +34,18 @@ final GoRouter router = GoRouter(
       name: 'splash',
       builder: (context, state) => const SplashScreen(),
     ),
+    // 본인인증 체크 페이지
+    // GoRoute(
+    //   path: '/auth-check',
+    //   name: 'auth-check',
+    //   builder: (context, state) => const AuthCheckPage(),
+    // ),
+    // // 로그인 페이지 라우터 등록 
+    // GoRoute(
+    //   path: '/login',
+    //   name: 'login',
+    //   builder: (context, state) => const LoginPage(),
+    // ),
 
     // 메인 앱 구조 (하단 탭 포함)
     StatefulShellRoute.indexedStack(

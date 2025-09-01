@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,65 +11,104 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  // 애니메이션 컨트롤러 및 애니메이션 변수 선언
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
+
+  final String _fullText = '지친 현생을 위한 익명 휴게소';
+  String _visibleText = '';
+  int _charIndex = 0;
+  Timer? _typingTimer;
+
+  bool _animationStarted = false;
 
   @override
   void initState() {
     super.initState();
 
-    // 애니메이션 컨트롤러 초기화 (2초)
+    // 애니메이션 컨트롤러 초기화
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 2), // 애니메이션 지속 시간
     );
 
-    // 크기 애니메이션: 1배 → 2배로 커짐
     _scaleAnimation = Tween<double>(begin: 1.0, end: 2.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // 불투명도 애니메이션: 1.0 → 0.0 (점점 투명해짐)
     _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // 애니메이션 시작
-    _controller.forward();
-
-    // 애니메이션이 끝나면 HomePage로 이동
+    // 애니메이션 끝나면 다음 페이지 이동
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         context.go('/');
       }
     });
+
+    // 타자 효과 시작
+    _startTyping();
+  }
+
+  void _startTyping() { // 타자 효과 
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) { 
+      if (_charIndex < _fullText.length) {
+        setState(() {
+          _visibleText += _fullText[_charIndex];
+          _charIndex++;
+        });
+      } else {
+        _typingTimer?.cancel();
+        _startAnimation();
+      }
+    });
+  }
+
+  void _startAnimation() {
+    if (!_animationStarted) {
+      _animationStarted = true;
+      _controller.forward();
+    }
   }
 
   @override
   void dispose() {
-    // 애니메이션 컨트롤러 해제
     _controller.dispose();
+    _typingTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 스플래시 배경색
+      backgroundColor: Colors.white,
       body: Center(
         child: AnimatedBuilder(
-          animation: _controller, // 애니메이션 값 변경 감지
+          animation: _controller,
           builder: (context, child) {
             return Transform.scale(
-              scale: _scaleAnimation.value, // 이미지 크기 조절
+              scale: _scaleAnimation.value,
               child: Opacity(
-                opacity: _opacityAnimation.value, // 이미지 투명도 조절
-                child: Image.asset(
-                  'assets/logo/logo_vertical.png', // 로고 이미지 경로
-                  width: 150,
-                  height: 150,
+                opacity: _opacityAnimation.value,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/logo/logo_vertical.png',
+                      width: 150,
+                      height: 150,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _visibleText,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             );
