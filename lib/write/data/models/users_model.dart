@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // 유저 정보 DTO
 class UsersModel {
-  final String userID;
+  final String uid;
   final String email;
   final String nickname;
   final String? profileImageUrl;
@@ -14,7 +14,7 @@ class UsersModel {
   final int reportCount;
 
   UsersModel({
-    required this.userID,
+    required this.uid,
     required this.email,
     required this.nickname,
     this.profileImageUrl,
@@ -29,7 +29,7 @@ class UsersModel {
   // JSON에서 User 객체 생성
   factory UsersModel.fromJson(Map<String, dynamic> json) {
     return UsersModel(
-      userID: json['userID'] ?? '',
+      uid: json['uid'] ?? '',
       email: json['email'] ?? '',
       nickname: json['nickname'] ?? '',
       profileImageUrl: json['profileImageUrl'],
@@ -49,7 +49,7 @@ class UsersModel {
   // User 객체를 JSON Map으로 변환
   Map<String, dynamic> toJson() {
     return {
-      'userID': userID,
+      'uid': uid,
       'email': email,
       'nickname': nickname,
       'profileImageUrl': profileImageUrl,
@@ -64,7 +64,7 @@ class UsersModel {
 
   // User 객체 복사 (일부 필드 수정)
   UsersModel copyWith({
-    String? userID,
+    String? uid,
     String? email,
     String? nickname,
     String? profileImageUrl,
@@ -76,7 +76,7 @@ class UsersModel {
     int? reportCount,
   }) {
     return UsersModel(
-      userID: userID ?? this.userID,
+      uid: uid ?? this.uid,
       email: email ?? this.email,
       nickname: nickname ?? this.nickname,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,

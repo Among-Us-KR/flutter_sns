@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -21,6 +23,9 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _typingTimer;
 
   bool _animationStarted = false;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -40,10 +45,10 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // 애니메이션 끝나면 다음 페이지 이동
+    // 애니메이션 끝나면 상태 확인 후 페이지 이동
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        context.go('/');
+        _checkAuthAndNavigate();
       }
     });
 
@@ -51,8 +56,8 @@ class _SplashScreenState extends State<SplashScreen>
     _startTyping();
   }
 
-  void _startTyping() { // 타자 효과 
-    _typingTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) { 
+  void _startTyping() {
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (_charIndex < _fullText.length) {
         setState(() {
           _visibleText += _fullText[_charIndex];
@@ -70,6 +75,37 @@ class _SplashScreenState extends State<SplashScreen>
       _animationStarted = true;
       _controller.forward();
     }
+  }
+
+  // 로그인 및 프로필 상태 체크 후 적절한 화면으로 이동
+  Future<void> _checkAuthAndNavigate() async {
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      if (context.mounted) context.go('/login');
+      return;
+    }
+
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+
+  if (!doc.exists) {
+    if (!mounted) return; // mounted 체크 먼저
+    context.go('/login');  // 안전하게 context 사용
+    return;
+  }
+
+    final data = doc.data();
+    final nickname = data?['nickname'] as String?;
+
+   if (nickname == null || nickname.isEmpty) {
+      if (!mounted) return;   // 위젯이 화면에 있는지 확인
+      context.go('/login-detail');  // 안전하게 라우팅
+      return;
+    }
+
+
+    if (!mounted) return;  // 위젯이 아직 화면에 있는지 확인
+    context.go('/');       // 안전하게 라우팅 실행
   }
 
   @override

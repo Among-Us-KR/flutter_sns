@@ -21,8 +21,13 @@ lib/
 ├── core/        // 앱 전반에서 공통으로 쓰이는 설정 및 예외 처리 모음
 │   ├── config/
 │   │   └── dio.dart           // Dio HTTP 클라이언트 설정 및 공통 인터셉터 등 구성
-│   └── error/
-│       └── exceptions.dart    // 앱에서 발생하는 예외 정의 및 처리용 커스텀 예외 클래스
+│   ├── error/
+│   │   └── exceptions.dart    // 앱에서 발생하는 예외 정의 및 처리용 커스텀 예외 클래스
+│   ├── network/
+│   │   
+│   └── firebase/
+│       └── auth_service.dart // Google 로그인/로그아웃, UID 저장 등의 로직
+│  
 ├── data/        // 데이터 계층 - 외부 데이터 소스와 통신하고 모델 관리
 │   ├── datasources/
 │   │   └── firebase_storage_datasource.dart  // Firebase Storage 관련 API 호출 구현
@@ -199,3 +204,24 @@ comments 컬렉션 가지고 올 때 특정 feed에 해당하는 댓글만 가�
     <<Firebase Authentication 요금 정책 요약>>
     1. Spark 요금제 (무료 플랜)
     이메일/비밀번호, 소셜 로그인 등 대부분의 인증 방식은 무제한 무료입니다.
+
+```
+1. SplashScreen
+   └ 로그인 상태 확인 (FirebaseAuth)
+       ├ 로그인 X → LoginScreen
+       └ 로그인 O
+           └ DB에 UID 존재 X → LoginScreen
+           └ UID 존재 O
+               ├ 닉네임 null → ProfileEditScreen
+               └ 닉네임 있음 → HomePage
+
+2. LoginPage (구글 로그인 + 동의 체크)
+   └ 로그인 완료 → DB에 UID 저장 → ProfileEditPage로 이동
+
+3. ProfileEditScreen (닉네임/이미지 등록)
+   └ 저장 완료 → HomePage로 이동
+
+```
+login_page.dart
+auth_service.dart
+profile_edit_page.dart
