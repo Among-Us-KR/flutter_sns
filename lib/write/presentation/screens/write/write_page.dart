@@ -50,14 +50,15 @@ class _WritePageState extends State<WritePage> {
   ];
   String? _selectedCategory;
 
-  WriteMode _mode = WriteMode.empathy;
+  WriteMode? _mode;
 
   // 강화된 유효성 검사
   bool get _isValid {
     final text = _contentCtrl.text.trim();
     return (_selectedCategory != null) &&
         text.isNotEmpty &&
-        text.length <= WritePageConstants.maxTextLength;
+        text.length <= WritePageConstants.maxTextLength &&
+        _mode != null;
   }
 
   @override
@@ -175,9 +176,9 @@ class _WritePageState extends State<WritePage> {
     final cs = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
       appBar: AppBar(
-        backgroundColor: cs.surface,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleSpacing: 0,
