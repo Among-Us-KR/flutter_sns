@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/write/presentation/widgets/no_glow_scroll_behavior.dart';
+import 'package:flutter_sns/write/presentation/screens/home/widgets/no_glow_scroll_behavior.dart';
 
 class ContentsDetailPage extends StatelessWidget {
   const ContentsDetailPage({super.key, required this.postId});

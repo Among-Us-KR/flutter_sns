@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sns/write/presentation/widgets/no_glow_scroll_behavior.dart';
-import 'package:flutter_sns/write/presentation/widgets/post_view.dart';
-import 'package:flutter_sns/write/presentation/widgets/top_tab_bar.dart';
+import 'package:flutter_sns/write/presentation/screens/home/widgets/no_glow_scroll_behavior.dart';
+import 'package:flutter_sns/write/presentation/screens/home/widgets/post_view.dart';
+import 'package:flutter_sns/write/presentation/screens/home/widgets/top_tab_bar.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
