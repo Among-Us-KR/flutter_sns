@@ -9,9 +9,12 @@ class BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // 현재 라우트 확인
+
+    // 현재 경로
     final location = GoRouterState.of(context).uri.toString();
-    final hideBottomBar = location.contains('/edit'); // edit일 때 숨김
+    // 작성(/write)·프로필편집(/profile/edit)에서는 하단바 숨김
+    final hideBottomBar =
+        location.startsWith('/write') || location.startsWith('/profile/edit');
 
     return Scaffold(
       body: navigationShell,
@@ -33,23 +36,29 @@ class BottomNavigation extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
+                    // 홈
                     _buildNavItem(
                       context,
                       iconPath: 'assets/icons/home_grey.png',
                       activeIconPath: 'assets/icons/home_orange.png',
-                      index: 0,
+                      isActive: navigationShell.currentIndex == 0,
+                      onTap: () => navigationShell.goBranch(0),
                     ),
+                    // + (작성) — 브랜치 전환 대신 push로 별도 화면 오픈
                     _buildNavItem(
                       context,
                       iconPath: 'assets/icons/plus_grey.png',
                       activeIconPath: 'assets/icons/plus_orange.png',
-                      index: 1,
+                      isActive: false, // 가운데 버튼은 활성 상태 없음
+                      onTap: () => context.push('/write'),
                     ),
+                    // 프로필
                     _buildNavItem(
                       context,
                       iconPath: 'assets/icons/profile_grey.png',
                       activeIconPath: 'assets/icons/profile_orange.png',
-                      index: 2,
+                      isActive: navigationShell.currentIndex == 1,
+                      onTap: () => navigationShell.goBranch(1),
                     ),
                   ],
                 ),
@@ -62,25 +71,19 @@ class BottomNavigation extends StatelessWidget {
     BuildContext context, {
     required String iconPath,
     required String activeIconPath,
-    required int index,
+    required bool isActive,
+    required VoidCallback onTap,
   }) {
-    final isActive = navigationShell.currentIndex == index;
     final theme = Theme.of(context);
-
     return GestureDetector(
-      onTap: () => navigationShell.goBranch(index),
-      child: Container(
+      onTap: onTap,
+      child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              isActive ? activeIconPath : iconPath,
-              width: 24,
-              height: 24,
-              color: isActive ? theme.colorScheme.primary : Colors.grey,
-            ),
-          ],
+        child: Image.asset(
+          isActive ? activeIconPath : iconPath,
+          width: 24,
+          height: 24,
+          color: isActive ? theme.colorScheme.primary : Colors.grey,
         ),
       ),
     );

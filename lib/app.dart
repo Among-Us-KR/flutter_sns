@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/core/services/message_service.dart';
 import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
 import 'package:flutter_sns/write/presentation/screens/post_detail/post_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_page.dart';
-import 'package:flutter_sns/write/presentation/screens/write_page.dart';
+import 'package:flutter_sns/write/presentation/screens/write/write_page.dart';
 import 'package:flutter_sns/write/presentation/widgets/bottom_navigation.dart';
 import 'package:flutter_sns/write/presentation/widgets/splash_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme, // 라이트 테마
       darkTheme: AppTheme.darkTheme, // 다크 테마
       themeMode: ThemeMode.system, // 시스템 테마 모드
+      scaffoldMessengerKey: SnackBarMessageService.scaffoldKey, // 스낵메시지
     );
   }
 }
@@ -63,17 +65,6 @@ final GoRouter router = GoRouter(
           ],
         ),
 
-        // 글쓰기 탭
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/write',
-              name: 'write',
-              builder: (context, state) => WritePage(),
-            ),
-          ],
-        ),
-
         // 프로필 탭
         StatefulShellBranch(
           routes: [
@@ -92,6 +83,11 @@ final GoRouter router = GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/write',
+      name: 'write',
+      builder: (_, _) => const WritePage(),
     ),
   ],
 );
