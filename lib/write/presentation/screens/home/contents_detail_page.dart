@@ -11,6 +11,9 @@ class ContentsDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // 스크롤 시 앱바 색상이 변하는 것을 방지
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
         title: Text('Post #$postId'), // postId를 사용하여 제목 표시
         actions: [
           IconButton(
@@ -46,7 +49,7 @@ class ContentsDetailPage extends StatelessWidget {
             children: [
               Text(
                 '#대박스',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.brand),
+                style: textTheme.labelMedium?.copyWith(color: AppColors.n600),
               ),
               const SizedBox(width: 8),
               Text(
@@ -102,26 +105,35 @@ class ContentsDetailPage extends StatelessWidget {
 
   Widget _buildCommentSection(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // TODO: 실제 댓글 데이터로 교체예정
+    final List<_CommentTile> commentTiles = [
+      const _CommentTile(
+        username: '쌩나는햄스터',
+        timestamp: '2025-08-28 15:30',
+        comment: '댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당',
+      ),
+      const _CommentTile(
+        username: '웃긴거북이',
+        timestamp: '2025-08-28 15:30',
+        comment: '댓글내용입니당댓글내용입니당',
+      ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '댓글 2',
+            '댓글 ${commentTiles.length}',
             style: textTheme.titleMedium?.copyWith(color: AppColors.n900),
           ),
           const SizedBox(height: 16),
-          const _CommentTile(
-            username: '쌩나는햄스터',
-            timestamp: '2025-08-28 15:30',
-            comment: '댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당댓글내용입니당',
-          ),
-          const SizedBox(height: 16),
-          const _CommentTile(
-            username: '웃긴거북이',
-            timestamp: '2025-08-28 15:30',
-            comment: '댓글내용입니당댓글내용입니당',
+          ...commentTiles.map(
+            (tile) => Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: tile,
+            ),
           ),
         ],
       ),
@@ -244,15 +256,45 @@ class _CommentTile extends StatelessWidget {
 }
 
 /// 하단 댓글 입력 필드 위젯
-class _CommentInputField extends StatelessWidget {
+class _CommentInputField extends StatefulWidget {
   const _CommentInputField();
+
+  @override
+  State<_CommentInputField> createState() => _CommentInputFieldState();
+}
+
+class _CommentInputFieldState extends State<_CommentInputField> {
+  final _textController = TextEditingController();
+  bool _canSend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(() {
+      if (!mounted) return;
+      setState(() {
+        _canSend = _textController.text.isNotEmpty;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _onSend() {
+    // TODO: 댓글 전송 로직 구현
+    _textController.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.n300, width: 1.0)),
           color: Colors.white,
         ),
@@ -261,22 +303,41 @@ class _CommentInputField extends StatelessWidget {
             const CircleAvatar(radius: 16, backgroundColor: AppColors.n100),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: '따뜻한 공감 댓글 작성하기',
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.n400),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        decoration: const InputDecoration(
+                          fillColor: Colors.transparent,
+                          filled: true,
+                          hintText: '따뜻한 공감 댓글 작성하기',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _canSend ? _onSend : null,
+                      child: Image.asset(
+                        'assets/icons/send.png',
+                        width: 24,
+                        height: 24,
+                        color: _canSend ? AppColors.brand : AppColors.n600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            IconButton(
-              icon: const Icon(Icons.send, color: AppColors.brand),
-              onPressed: () {
-                // 댓글 전송 로직
-              },
             ),
           ],
         ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/write/presentation/widgets/no_glow_scroll_behavior.dart';
-import 'package:flutter_sns/write/presentation/widgets/post_item.dart';
+import 'package:flutter_sns/write/presentation/widgets/post_view.dart';
 import 'package:flutter_sns/write/presentation/widgets/top_tab_bar.dart';
 
 class HomePage extends StatelessWidget {
@@ -27,7 +27,7 @@ class HomePage extends StatelessWidget {
                 scrollDirection: Axis.vertical,
                 controller: controller,
                 children: const <Widget>[
-                  PostItem(
+                  PostView(
                     postId: 'post_1', // 샘플 ID
                     // 이미지가 여러 장인 경우 (좌우 스와이프 가능)
                     imagePaths: [
@@ -38,7 +38,7 @@ class HomePage extends StatelessWidget {
                     caption: '내용내용내용내용내용내용내용내용내용내용내용내용내용내용..',
                     likeCount: 20,
                   ),
-                  PostItem(
+                  PostView(
                     postId: 'post_2', // 샘플 ID
                     imagePaths: [
                       'assets/images/dog_image.jpeg',

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:go_router/go_router.dart';
 
-class PostItem extends StatelessWidget {
+class PostView extends StatelessWidget {
   final List<String> imagePaths;
   final String postId;
   final String username;
   final String caption;
   final int likeCount;
 
-  const PostItem({
+  const PostView({
     super.key,
     required this.postId,
     required this.imagePaths,
