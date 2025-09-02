@@ -213,7 +213,7 @@ class AppTheme {
           foregroundColor: cs.onPrimary,
           textStyle: AppTypography.style(
             AppTypography.s16,
-            weight: AppTypography.medium,
+            weight: AppTypography.bold,
           ),
           minimumSize: const Size(48, 48),
           shape: RoundedRectangleBorder(
@@ -227,7 +227,7 @@ class AppTheme {
           foregroundColor: cs.onPrimary,
           textStyle: AppTypography.style(
             AppTypography.s16,
-            weight: AppTypography.medium,
+            weight: AppTypography.bold,
           ),
           minimumSize: const Size(48, 48),
           shape: RoundedRectangleBorder(
@@ -240,7 +240,7 @@ class AppTheme {
           foregroundColor: cs.primary,
           textStyle: AppTypography.style(
             AppTypography.s14,
-            weight: AppTypography.medium,
+            weight: AppTypography.bold,
           ),
         ),
       ),
@@ -248,8 +248,7 @@ class AppTheme {
       // Inputs
       inputDecorationTheme: InputDecorationTheme(
         isDense: true,
-        filled: true,
-        fillColor: cs.surfaceContainerHigh,
+        filled: false,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 12,

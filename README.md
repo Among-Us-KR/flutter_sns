@@ -11,9 +11,12 @@ A new Flutter project.
 
 ```plaintext
 assets/
-├── images/
 ├── config/
 │   └── .env/
+├── fonts/       // 앱 전반에서 공통으로 사용되는 font
+├── icons/       // 앱 전반에서 공통으로 사용되는 아이콘
+├── images/
+└── logo/        // 앱의 로고 이미지 
 lib/
 ├── core/        // 앱 전반에서 공통으로 쓰이는 설정 및 예외 처리 모음
 │   ├── config/
@@ -36,15 +39,31 @@ lib/
 │       └── upload_image_usecase.dart           // 앱의 주요 동작(유즈케이스) 구현 (비즈니스 로직)
 ├── presentation/ // UI 계층 - 화면, 상태관리, 위젯 등
 │   ├── screens/
+│   │   ├── home
+│   │   ├── post_detail
+│   │   ├── profile
+│   │   ├── write
 │   │   └── upload_screen.dart                   // 이미지 업로드 화면 위젯 (페이지 단위)
 │   ├── providers/
 │   │   └── upload_provider.dart                 // 상태 관리 및 비즈니스 로직과 UI 연결 (예: Provider)
 │   └── widgets/
+│       ├── splash_screen.dart                   //스플래시 설정
 │       └── upload_button.dart                   // 재사용 가능한 UI 컴포넌트 (버튼 등)
-└── main.dart                                   // 앱 진입점, Firebase 초기화 및 라우팅 설정 포함
+├── firebase_options.dart                        // firebase 기본 
+├── app.dart                                     // 라우팅 설정 테마설정
+└── main.dart                                     // 앱 진입점, Firebase 초기화 
 
-  
-  
+
+ ## 전체 실행흐름 
+ 
+ ```
+ main.dart 
+ → MyApp (in app.dart) 
+ → GoRouter 시작 
+ → SplashScreen 
+ → context.go('/') 
+ → HomePage 
+ ``` 
 
 ## 필수구현 사항
 
