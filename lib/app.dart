@@ -46,7 +46,7 @@ final GoRouter router = GoRouter(
       name: 'login_detail',
       builder: (context, state) => const LoginDetailPage(),
     ),
-    // 메인 앱 구조 (하단 탭 포함)
+// 메인 앱 구조 (하단 탭 포함)
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return BottomNavigation(navigationShell: navigationShell);
@@ -66,21 +66,10 @@ final GoRouter router = GoRouter(
                   name: 'post_detail',
                   builder: (context, state) {
                     final postId = state.pathParameters['postId']!;
-                    return PostDetailPage(postId: postId);
+                    return ContentsDetailPage(postId: postId);
                   },
                 ),
               ],
-            ),
-          ],
-        ),
-
-        // 글쓰기 탭
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/write',
-              name: 'write',
-              builder: (context, state) => WritePage(),
             ),
           ],
         ),
@@ -101,6 +90,17 @@ final GoRouter router = GoRouter(
               ],
             ),
           ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/write',
+      name: 'write',
+      builder: (_, _) => const WritePage(),
+    ),
+  ],
+);
+
         ),
       ],
     ),
