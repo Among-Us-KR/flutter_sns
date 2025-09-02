@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/write/core/services/message_service.dart';
-import 'package:flutter_sns/write/presentation/screens/home/contents_detail_page.dart';
+import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_page.dart';
