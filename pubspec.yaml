@@ -57,6 +57,10 @@ dependencies:
   dio: ^5.9.0
   json_annotation: ^4.9.0
   intl: ^0.20.2
+  firebase_auth: ^6.0.2
+  google_sign_in: ^6.0.0
+  path_provider: ^2.1.5
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +94,7 @@ flutter:
     - assets/config/
     - assets/images/
     - assets/logo/
+    - assets/banned_words/slang.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

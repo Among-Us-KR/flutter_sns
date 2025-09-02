@@ -3,11 +3,14 @@ import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/write/core/services/message_service.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
+import 'package:flutter_sns/write/presentation/screens/login/login_detail_page.dart';
+import 'package:flutter_sns/write/presentation/screens/post_detail/post_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_page.dart';
 import 'package:flutter_sns/write/presentation/screens/write/write_page.dart';
 import 'package:flutter_sns/write/presentation/widgets/bottom_navigation.dart';
-import 'package:flutter_sns/write/presentation/widgets/splash_screen.dart';
+import 'package:flutter_sns/write/presentation/widgets/splash_page.dart';
+import 'package:flutter_sns/write/presentation/screens/login/login_page.dart';
 import 'package:go_router/go_router.dart';
 
 class MyApp extends StatelessWidget {
@@ -34,10 +37,19 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/splash',
       name: 'splash',
-      builder: (context, state) => const SplashScreen(),
+      builder: (context, state) => const SplashPage(),
     ),
-
-    // 메인 앱 구조 (하단 탭 포함)
+      GoRoute(
+      path: '/login',
+      name: 'login',
+      builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/login-detail',
+      name: 'login_detail',
+      builder: (context, state) => const LoginDetailPage(),
+    ),
+// 메인 앱 구조 (하단 탭 포함)
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return BottomNavigation(navigationShell: navigationShell);
