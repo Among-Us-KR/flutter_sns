@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme, // 라이트 테마
       darkTheme: AppTheme.darkTheme, // 다크 테마
       themeMode: ThemeMode.system, // 시스템 테마 모드
+      scaffoldMessengerKey: SnackBarMessageService.scaffoldKey, // 스낵메시지
     );
   }
 }
@@ -36,7 +37,7 @@ final GoRouter router = GoRouter(
       name: 'splash',
       builder: (context, state) => const SplashPage(),
     ),
-       GoRoute(
+      GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginPage(),
@@ -97,12 +98,6 @@ final GoRouter router = GoRouter(
       path: '/write',
       name: 'write',
       builder: (_, _) => const WritePage(),
-    ),
-  ],
-);
-
-        ),
-      ],
     ),
   ],
 );
