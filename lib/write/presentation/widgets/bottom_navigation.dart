@@ -47,9 +47,11 @@ class BottomNavigation extends StatelessWidget {
                     // + (작성) — 브랜치 전환 대신 push로 별도 화면 오픈
                     _buildNavItem(
                       context,
-                      iconPath: 'assets/icons/plus_grey.png',
-                      activeIconPath: 'assets/icons/plus_orange.png',
+                      iconPath: 'assets/icons/plus_button.png',
+                      activeIconPath: 'assets/icons/plus_button.png',
                       isActive: false, // 가운데 버튼은 활성 상태 없음
+                      size: 36,
+                      tint: false,
                       onTap: () => context.push('/write'),
                     ),
                     // 프로필
@@ -73,6 +75,8 @@ class BottomNavigation extends StatelessWidget {
     required String activeIconPath,
     required bool isActive,
     required VoidCallback onTap,
+    double size = 24,
+    bool tint = true,
   }) {
     final theme = Theme.of(context);
     return GestureDetector(
@@ -81,9 +85,12 @@ class BottomNavigation extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         child: Image.asset(
           isActive ? activeIconPath : iconPath,
-          width: 24,
-          height: 24,
-          color: isActive ? theme.colorScheme.primary : Colors.grey,
+          width: size,
+          height: size,
+          color: tint
+              ? (isActive ? theme.colorScheme.primary : Colors.grey)
+              : null,
+          filterQuality: FilterQuality.high,
         ),
       ),
     );
