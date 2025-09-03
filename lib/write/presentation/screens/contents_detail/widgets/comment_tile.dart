@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/domain/entities/comments.dart';
+import 'package:intl/intl.dart';
 
-/// 단일 댓글의 UI를 구성하는 재사용 가능한 위젯입니다.
 class CommentTile extends StatelessWidget {
-  final String username;
-  final String timestamp;
-  final String comment;
+  final Comments comment;
 
-  const CommentTile({
-    super.key,
-    required this.username,
-    required this.timestamp,
-    required this.comment,
-  });
+  const CommentTile({super.key, required this.comment});
+
+  /// DateTime 객체를 '몇 분 전'과 같은 상대 시간 문자열로 변환합니다.
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds}초 전';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      return DateFormat('yy.MM.dd').format(dateTime);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // TODO: 실제 프로필 이미지 URL로 교체
         const CircleAvatar(radius: 18, backgroundColor: AppColors.n100),
         const SizedBox(width: 12),
         Expanded(
@@ -28,19 +41,22 @@ class CommentTile extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    username,
+                    comment.author.nickname,
                     style: AppTypography.style(
                       AppTypography.s12,
                       weight: AppTypography.bold,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(timestamp, style: AppTypography.caption(AppColors.n600)),
+                  Text(
+                    _formatTimeAgo(comment.createdAt),
+                    style: AppTypography.caption(AppColors.n600),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                comment,
+                comment.content,
                 style: AppTypography.style(
                   AppTypography.s12,
                   color: AppColors.n700,
