@@ -2,6 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- notification -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
+	<key>NSPushNotificationUsageDescription</key>
+	<string>앱 실행 중 댓글 알림을 받기 위해 필요합니다.</string>
 	<!-- Put me in the [my_project]/ios/Runner/Info.plist file -->
 	<!-- Google Sign-in Section -->
 	<key>CFBundleURLTypes</key>

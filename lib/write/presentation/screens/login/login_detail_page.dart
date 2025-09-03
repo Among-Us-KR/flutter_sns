@@ -25,28 +25,24 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
   File? _selectedImage;
   bool _isNicknameValid = false;
   bool _isNicknameContainsBanned = false;
+  bool _isNicknameDuplicate = false;
   bool _isNotificationAllowed = false;
 
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  @override
-  void initState() {
-    super.initState();
-    _nicknameController.addListener(_onNicknameChanged);
+  /// 닉네임 중복 검사 함수
+  Future<bool> _checkNicknameDuplicate(String nickname) async {
+    final query = await _firestore
+        .collection('users')
+        .where('nickname', isEqualTo: nickname)
+        .limit(1)
+        .get();
+
+    return query.docs.isNotEmpty;
   }
 
-  void _onNicknameChanged() {
-    final input = _nicknameController.text.trim();
-    final sanitized = XssFilter.sanitize(input);
-    final containsBanned = XssFilter.containsBannedWord(sanitized);
-
-    setState(() {
-      _isNicknameValid = sanitized.length >= 2;
-      _isNicknameContainsBanned = containsBanned;
-    });
-  }
-
+  /// 이미지 압축 함수
   Future<File?> _compressImage(File file) async {
     try {
       final tempDir = await getTemporaryDirectory();
@@ -69,6 +65,7 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
     }
   }
 
+  /// 이미지 선택 함수
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -89,17 +86,15 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
     }
   }
 
+  /// 프로필 저장 함수
   Future<void> _saveProfile() async {
-    if (!_isNicknameValid) {
-      _showSnackBar('닉네임은 2자 이상 입력해주세요.');
-      return;
-    }
-    if (_isNicknameContainsBanned) {
-      _showSnackBar('닉네임에 사용 불가능한 단어가 포함되어 있습니다.');
+    final nickname = XssFilter.sanitize(_nicknameController.text.trim());
+    
+    if (!_isNicknameValid || _isNicknameContainsBanned || _isNicknameDuplicate) {
+      _showSnackBar('닉네임을 다시 확인해주세요.');
       return;
     }
 
-    final nickname = XssFilter.sanitize(_nicknameController.text.trim());
     final user = _auth.currentUser;
     if (user == null) {
       _showSnackBar('로그인 정보가 없습니다.');
@@ -136,6 +131,7 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
     }
   }
 
+  /// 스낵바 메시지 출력
   void _showSnackBar(String msg) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -143,7 +139,6 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
 
   @override
   void dispose() {
-    _nicknameController.removeListener(_onNicknameChanged);
     _nicknameController.dispose();
     super.dispose();
   }
@@ -152,7 +147,12 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadProvider);
     final isLoading = uploadState.isLoading;
-    final canSave = _isNicknameValid && !_isNicknameContainsBanned && !isLoading;
+
+    // 저장 버튼 활성화 조건
+    final canSave = _isNicknameValid &&
+        !_isNicknameContainsBanned &&
+        !_isNicknameDuplicate &&
+        !isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('프로필 설정')),
@@ -163,6 +163,7 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 프로필 이미지 선택 영역
                 Center(
                   child: GestureDetector(
                     onTap: _pickImage,
@@ -176,13 +177,35 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // 닉네임 입력 필드
                 TextField(
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.done,
+                  enableIMEPersonalizedLearning: true,
+                  autocorrect: true,
                   controller: _nicknameController,
                   decoration: const InputDecoration(
                     labelText: '닉네임',
                     border: OutlineInputBorder(),
                   ),
+                  onChanged: (value) async {
+                    final input = value.trim();
+                    final sanitized = XssFilter.sanitize(input);
+                    final containsBanned = XssFilter.containsBannedWord(sanitized);
+
+                    // Firestore에서 닉네임 중복 여부 확인
+                    final isDuplicate = await _checkNicknameDuplicate(sanitized);
+
+                    setState(() {
+                      _isNicknameValid = sanitized.length >= 2 && !containsBanned && !isDuplicate;
+                      _isNicknameContainsBanned = containsBanned;
+                      _isNicknameDuplicate = isDuplicate;
+                    });
+                  },
                 ),
+
+                // 닉네임 유효성 메시지
                 if (_isNicknameContainsBanned)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
@@ -190,17 +213,33 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
                       '입력하실 수 없는 닉네임입니다.',
                       style: TextStyle(color: Colors.red),
                     ),
+                  )
+                else if (_isNicknameDuplicate)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      '이미 사용 중인 닉네임입니다.',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
+
                 const SizedBox(height: 24),
+
+                // 알림 설정 스위치
                 SwitchListTile(
                   title: const Text('알림 받기 허용'),
                   value: _isNotificationAllowed,
                   onChanged: (bool value) =>
                       setState(() => _isNotificationAllowed = value),
                 ),
+
                 const SizedBox(height: 24),
+
+                // 저장 버튼
                 ElevatedButton(
                   onPressed: canSave ? _saveProfile : null,
+                  style:
+                      ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   child: isLoading
                       ? const SizedBox(
                           width: 20,
@@ -208,12 +247,12 @@ class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('저장하고 시작하기'),
-                  style:
-                      ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                 ),
               ],
             ),
           ),
+
+          // 로딩 상태 표시
           if (isLoading)
             const ModalBarrier(dismissible: false, color: Colors.black45),
           if (isLoading)

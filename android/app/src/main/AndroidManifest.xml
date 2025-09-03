@@ -1,8 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <!-- notification Android 13 이상은 POST_NOTIFICATIONS 퍼미션 필요 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="flutter_sns"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- Firebase Notification 채널 메타데이터 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="comments_channel"/>
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"
