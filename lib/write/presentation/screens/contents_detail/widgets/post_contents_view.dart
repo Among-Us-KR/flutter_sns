@@ -7,7 +7,26 @@ import 'package:intl/intl.dart';
 /// 게시물의 제목, 내용, 이미지, 상호작용 버튼 등을 포함하는 위젯
 class PostContentView extends StatelessWidget {
   final Posts post;
-  const PostContentView({super.key, required this.post});
+  final int? commentCount;
+  const PostContentView({super.key, required this.post, this.commentCount});
+
+  /// DateTime 객체를 '몇 분 전'과 같은 상대 시간 문자열로 변환합니다.
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds}초 전';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      return DateFormat('yy.MM.dd').format(dateTime);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +75,7 @@ class PostContentView extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                DateFormat('MM.dd HH:mm').format(post.createdAt),
+                _formatTimeAgo(post.createdAt),
                 style: AppTypography.caption(AppColors.n600),
               ),
             ],
@@ -81,10 +100,10 @@ class PostContentView extends StatelessWidget {
             ),
           const SizedBox(height: 16),
 
-          // 좋아요 및 댓글 수 위젯
+          // 좋아요 및 댓글 수
           PostActions(
             likeCount: post.stats.likesCount,
-            commentCount: post.stats.commentsCount,
+            commentCount: commentCount ?? post.stats.commentsCount,
           ),
         ],
       ),

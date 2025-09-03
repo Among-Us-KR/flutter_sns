@@ -51,7 +51,7 @@ Posts _postFromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
 
   return Posts(
     id: doc.id,
-    authorId: data['authorId'] as String? ?? '',
+    authorId: data['userId'] as String? ?? '',
     author: author,
     category: data['category'] as String? ?? '',
     mode: data['mode'] as String? ?? '',
@@ -109,13 +109,7 @@ class HomePage extends ConsumerWidget {
                     itemCount: posts.length,
                     itemBuilder: (context, index) {
                       final post = posts[index];
-                      return PostView(
-                        postId: post.id,
-                        imagePaths: post.images,
-                        username: post.author.nickname,
-                        caption: post.content,
-                        likeCount: post.stats.likesCount,
-                      );
+                      return PostView(post: post);
                     },
                   ),
                 );

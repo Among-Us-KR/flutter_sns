@@ -1,29 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class PostView extends StatelessWidget {
-  final List<String> imagePaths;
-  final String postId;
-  final String username;
-  final String caption;
-  final int likeCount;
+  final Posts post;
 
-  const PostView({
-    super.key,
-    required this.postId,
-    required this.imagePaths,
-    required this.username,
-    required this.caption,
-    required this.likeCount,
-  });
+  const PostView({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _PostImages(imagePaths: imagePaths),
+        _PostImages(imagePaths: post.images),
         // 이미지 위에 UI를 올리기 위한 그래디언트 오버레이
         // IgnorePointer를 사용하여 이 위젯이 터치 이벤트를 가로채지 않도록 함
         IgnorePointer(
@@ -45,16 +36,18 @@ class PostView extends StatelessWidget {
         Positioned(
           right: 16,
           bottom: 160,
-          child: _LikeButton(initialLikeCount: likeCount),
+          child: _LikeButton(initialLikeCount: post.stats.likesCount),
         ),
         Positioned(
           left: 0,
           right: 0,
           bottom: 20,
           child: _PostInfo(
-            postId: postId,
-            username: username,
-            caption: caption,
+            postId: post.id,
+            username: post.author.nickname,
+            caption: post.content,
+            createdAt: post.createdAt,
+            commentCount: post.stats.commentsCount,
           ),
         ),
       ],
@@ -103,9 +96,15 @@ class _PostImagesState extends State<_PostImages> {
           },
           itemCount: widget.imagePaths.length,
           itemBuilder: (context, index) {
-            return Image.asset(
+            // Firestore에서 가져온 네트워크 이미지 URL을 표시하도록 변경
+            return Image.network(
               widget.imagePaths[index],
               fit: BoxFit.cover,
+              // 로딩 중일 때 보여줄 위젯 (선택 사항)
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(child: CircularProgressIndicator());
+              },
               // 이미지를 불러오지 못했을 때를 대비한 에러 위젯
               errorBuilder: (context, error, stackTrace) {
                 return const Center(
@@ -197,11 +196,31 @@ class _PostInfo extends StatelessWidget {
   final String postId;
   final String username;
   final String caption;
+  final DateTime createdAt;
+  final int commentCount;
+
   const _PostInfo({
     required this.postId,
     required this.username,
     required this.caption,
+    required this.createdAt,
+    required this.commentCount,
   });
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds}초 전';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전';
+    } else {
+      return DateFormat('yy.MM.dd').format(dateTime);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,9 +252,8 @@ class _PostInfo extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // TODO: 실제 데이터 기반으로 시간 표시
                 Text(
-                  '25분 전',
+                  _formatTimeAgo(createdAt),
                   style: AppTypography.caption(whiteColor.withOpacity(0.8)),
                 ),
               ],
@@ -255,15 +273,9 @@ class _PostInfo extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text('#공감해줘', style: AppTypography.labelXS(whiteColor)),
                 const Spacer(),
-
-                GestureDetector(
-                  onTap: () {
-                    // TODO: 댓글 화면으로 이동하는 로직 구현
-                  },
-                  child: Text(
-                    '댓글 10', // TODO: 실제 댓글 수 표시
-                    style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
-                  ),
+                Text(
+                  '댓글 $commentCount',
+                  style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
                 ),
               ],
             ),
