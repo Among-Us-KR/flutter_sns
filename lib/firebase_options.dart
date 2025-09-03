@@ -63,6 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1066582715704',
     projectId: 'flutter-sns-80243',
     storageBucket: 'flutter-sns-80243.firebasestorage.app',
+    iosClientId: '1066582715704-42losq8982h9ainfts8roijmari6jr82.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterSns',
   );
 
