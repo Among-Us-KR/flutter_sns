@@ -1,37 +1,34 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_sns/utils/xss.dart'; // xss.dart 경로에 맞게 수정
+import 'package:flutter_sns/utils/xss.dart';
+import 'package:flutter_sns/write/presentation/providers/upload_provider.dart';
 
-class LoginDetailPage extends StatefulWidget {
+class LoginDetailPage extends ConsumerStatefulWidget {
   const LoginDetailPage({super.key});
 
   @override
-  State<LoginDetailPage> createState() => _LoginDetailPageState();
+  ConsumerState<LoginDetailPage> createState() => _LoginDetailPageState();
 }
 
-class _LoginDetailPageState extends State<LoginDetailPage> {
+class _LoginDetailPageState extends ConsumerState<LoginDetailPage> {
   final TextEditingController _nicknameController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   File? _selectedImage;
-  bool _isLoading = false;
   bool _isNicknameValid = false;
   bool _isNicknameContainsBanned = false;
   bool _isNotificationAllowed = false;
 
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
-  final _storage = FirebaseStorage.instance;
-
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -78,25 +75,10 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
         source: ImageSource.gallery,
         imageQuality: 100,
       );
-
       if (pickedFile == null) return;
 
       final File originalFile = File(pickedFile.path);
-
-      final tempDir = await getTemporaryDirectory();
-      final tempOriginalPath = path.join(
-        tempDir.path,
-        'original_${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
-      final tempOriginalFile = await originalFile.copy(tempOriginalPath);
-
-      final compressedFile = await _compressImage(tempOriginalFile);
-
-      try {
-        await tempOriginalFile.delete();
-      } catch (e) {
-        debugPrint('원본 임시 파일 삭제 실패: $e');
-      }
+      final compressedFile = await _compressImage(originalFile);
 
       setState(() {
         _selectedImage = compressedFile ?? originalFile;
@@ -118,30 +100,27 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
     }
 
     final nickname = XssFilter.sanitize(_nicknameController.text.trim());
+    final user = _auth.currentUser;
+    if (user == null) {
+      _showSnackBar('로그인 정보가 없습니다.');
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    final uploadNotifier = ref.read(uploadProvider.notifier);
+
+    if (_selectedImage != null) {
+      try {
+        await uploadNotifier.uploadProfileImage(user.uid, _selectedImage!);
+      } catch (e) {
+        debugPrint('이미지 업로드 오류: $e');
+        _showSnackBar('이미지 업로드에 실패했습니다.');
+        return;
+      }
+    }
+
+    final imageUrl = ref.read(uploadProvider).uploadedImageUrl;
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception("로그인 정보 없음");
-
-      String? imageUrl;
-
-      if (_selectedImage != null) {
-        final ref = _storage.ref().child('user_profiles').child('${user.uid}.jpg');
-        await ref.putFile(
-          _selectedImage!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-        imageUrl = await ref.getDownloadURL();
-
-        try {
-          await _selectedImage!.delete();
-        } catch (e) {
-          debugPrint('압축 이미지 삭제 실패: $e');
-        }
-      }
-
       await _firestore.collection('users').doc(user.uid).set({
         'nickname': nickname,
         if (imageUrl != null) 'profileImageUrl': imageUrl,
@@ -149,13 +128,11 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-    if (!mounted) return; // State의 mounted 체크
-        context.go('/');      // 안전하게 라우팅
+      if (!mounted) return;
+      context.go('/');
     } catch (e) {
       debugPrint('프로필 저장 오류: $e');
       _showSnackBar('저장 중 오류가 발생했습니다.');
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -165,7 +142,18 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
   }
 
   @override
+  void dispose() {
+    _nicknameController.removeListener(_onNicknameChanged);
+    _nicknameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final uploadState = ref.watch(uploadProvider);
+    final isLoading = uploadState.isLoading;
+    final canSave = _isNicknameValid && !_isNicknameContainsBanned && !isLoading;
+
     return Scaffold(
       appBar: AppBar(title: const Text('프로필 설정')),
       body: Stack(
@@ -182,8 +170,8 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
                       radius: 50,
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
-                          : const AssetImage('assets/icons/profile_orange.png') as ImageProvider,
-                      child: null,
+                          : const AssetImage('assets/icons/profile_orange.png')
+                              as ImageProvider,
                     ),
                   ),
                 ),
@@ -207,39 +195,31 @@ class _LoginDetailPageState extends State<LoginDetailPage> {
                 SwitchListTile(
                   title: const Text('알림 받기 허용'),
                   value: _isNotificationAllowed,
-                  onChanged: (bool value) {
-                    setState(() {
-                      _isNotificationAllowed = value;
-                    });
-                  },
+                  onChanged: (bool value) =>
+                      setState(() => _isNotificationAllowed = value),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: (_isLoading || !_isNicknameValid || _isNicknameContainsBanned)
-                      ? null
-                      : _saveProfile,
-                  // ignore: sort_child_properties_last
-                  child: const Text('저장하고 시작하기'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
-                  ),
+                  onPressed: canSave ? _saveProfile : null,
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('저장하고 시작하기'),
+                  style:
+                      ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                 ),
               ],
             ),
           ),
-          if (_isLoading)
+          if (isLoading)
             const ModalBarrier(dismissible: false, color: Colors.black45),
-          if (_isLoading)
+          if (isLoading)
             const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _nicknameController.removeListener(_onNicknameChanged);
-    _nicknameController.dispose();
-    super.dispose();
   }
 }
