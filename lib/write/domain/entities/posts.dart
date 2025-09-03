@@ -69,8 +69,15 @@ class Author {
 class PostStats {
   final int likesCount;
   final int commentsCount;
+  final int empathyCommentsCount; // 추가
+  final int punchCommentsCount; // 추가
 
-  PostStats({required this.likesCount, required this.commentsCount});
+  const PostStats({
+    this.likesCount = 0,
+    this.commentsCount = 0,
+    this.empathyCommentsCount = 0,
+    this.punchCommentsCount = 0,
+  });
 
   PostStats copyWith({int? likesCount, int? commentsCount}) {
     return PostStats(

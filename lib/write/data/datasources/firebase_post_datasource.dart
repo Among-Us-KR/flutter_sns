@@ -1,4 +1,3 @@
-// data/datasources/firebase_post_datasource.dart
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,25 +19,29 @@ class FirebasePostDataSource {
        _storage = storage ?? FirebaseStorage.instance,
        _auth = auth ?? FirebaseAuth.instance;
 
-  /// 게시글 생성
+  CollectionReference<Map<String, dynamic>> get _posts =>
+      _firestore.collection('posts');
+
+  /// 게시글 생성: createdAt/updatedAt 서버시간으로 강제 세팅
   Future<String> createPost(PostsModel post) async {
     try {
-      final docRef = await _firestore
-          .collection('posts')
-          .add(post.toFirestore());
+      final data = post.toFirestore();
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+
+      final docRef = await _posts.add(data);
       return docRef.id;
     } catch (e) {
       throw Exception('게시글 생성 실패: $e');
     }
   }
 
-  /// 게시글 수정
+  /// 게시글 수정: updatedAt 서버시간 갱신
   Future<void> updatePost(PostsModel post) async {
     try {
-      await _firestore
-          .collection('posts')
-          .doc(post.id)
-          .update(post.toFirestore());
+      final data = post.toFirestore();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await _posts.doc(post.id).update(data);
     } catch (e) {
       throw Exception('게시글 수정 실패: $e');
     }
@@ -47,16 +50,14 @@ class FirebasePostDataSource {
   /// 게시글 삭제 (Storage 이미지도 정리)
   Future<void> deletePost(String postId) async {
     try {
-      final postDoc = await _firestore.collection('posts').doc(postId).get();
-      if (postDoc.exists) {
-        final post = PostsModel.fromFirestore(postDoc);
-        // Storage에서 이미지 삭제
-        for (final imageUrl in post.images) {
-          await _deleteImageFromStorage(imageUrl);
+      final doc = await _posts.doc(postId).get();
+      if (doc.exists) {
+        final post = PostsModel.fromFirestore(doc);
+        for (final url in post.images) {
+          await _deleteImageFromStorage(url);
         }
       }
-      // Firestore에서 문서 삭제
-      await _firestore.collection('posts').doc(postId).delete();
+      await _posts.doc(postId).delete();
     } catch (e) {
       throw Exception('게시글 삭제 실패: $e');
     }
@@ -65,34 +66,28 @@ class FirebasePostDataSource {
   /// 특정 게시글 조회
   Future<PostsModel?> getPostById(String postId) async {
     try {
-      final doc = await _firestore.collection('posts').doc(postId).get();
-      if (doc.exists) {
-        return PostsModel.fromFirestore(doc);
-      }
-      return null;
+      final doc = await _posts.doc(postId).get();
+      if (!doc.exists) return null;
+      return PostsModel.fromFirestore(doc);
     } catch (e) {
       throw Exception('게시글 조회 실패: $e');
     }
   }
 
-  /// 이미지 업로드
-  ///
-  /// - 로그인 사용자의 UID/타임스탬프 기반 경로에 업로드
-  /// - 파일 존재 확인
-  /// - PNG/JPEG에 맞는 contentType 지정
+  /// 이미지 업로드 (로그인 필수)
+  /// 경로: post/{uid}/{timestamp}_{index}.(jpg|png)
+  /// Storage 규칙과 맞추기 위해 metadata.customMetadata.ownerId 설정
   Future<List<String>> uploadImages(List<File> images) async {
     try {
       if (images.isEmpty) return [];
-
       final user = _auth.currentUser;
       if (user == null) {
         throw Exception('로그인이 필요합니다.');
       }
-
-      final uid = _auth.currentUser!.uid;
+      final uid = user.uid;
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final urls = <String>[];
 
+      final urls = <String>[];
       for (int i = 0; i < images.length; i++) {
         final file = images[i];
 
@@ -100,74 +95,35 @@ class FirebasePostDataSource {
           throw Exception('이미지 파일이 존재하지 않습니다: ${file.path}');
         }
 
-        // 확장자/Content-Type 추정
         final ext = p.extension(file.path).toLowerCase().replaceFirst('.', '');
         final isPng = ext == 'png';
         final contentType = isPng ? 'image/png' : 'image/jpeg';
 
-        // 저장 경로: post/{uid}/{timestamp}_{index}.(png|jpg)
         final objectPath = 'post/$uid/${nowMs}_$i.${isPng ? 'png' : 'jpg'}';
         final ref = _storage.ref(objectPath);
 
-        // 메타데이터와 함께 업로드
         final metadata = SettableMetadata(
           contentType: contentType,
           customMetadata: {'ownerId': uid},
         );
-        final task = await ref.putFile(file, metadata);
 
+        final task = await ref.putFile(file, metadata);
         final url = await task.ref.getDownloadURL();
         urls.add(url);
       }
+
       return urls;
     } catch (e) {
       throw Exception('이미지 업로드 실패: $e');
     }
   }
 
-  /// 카테고리별 게시글 조회 (실시간 스트림)
-  Stream<List<PostsModel>> getPostsByCategory(String category) {
-    try {
-      return _firestore
-          .collection('posts')
-          .where('category', isEqualTo: category)
-          .orderBy('createdAt', descending: true)
-          .snapshots()
-          .map(
-            (snap) =>
-                snap.docs.map((d) => PostsModel.fromFirestore(d)).toList(),
-          );
-    } catch (e) {
-      throw Exception('카테고리별 게시글 조회 실패: $e');
-    }
-  }
-
-  /// 특정 사용자 게시글 조회 (실시간 스트림)
-  Stream<List<PostsModel>> getPostsByAuthor(String authorId) {
-    try {
-      return _firestore
-          .collection('posts')
-          .where('authorId', isEqualTo: authorId)
-          .orderBy('createdAt', descending: true)
-          .snapshots()
-          .map(
-            (snap) =>
-                snap.docs.map((d) => PostsModel.fromFirestore(d)).toList(),
-          );
-    } catch (e) {
-      throw Exception('작성자별 게시글 조회 실패: $e');
-    }
-  }
-
-  /// Storage에서 이미지 삭제 (실패해도 진행)
   Future<void> _deleteImageFromStorage(String imageUrl) async {
     try {
       final ref = _storage.refFromURL(imageUrl);
       await ref.delete();
-    } catch (e) {
-      // 삭제 실패는 치명적이지 않으므로 로그만 남기고 계속 진행
-      // ignore: avoid_print
-      print('이미지 삭제 실패: $imageUrl, 에러: $e');
+    } catch (_) {
+      // 삭제 실패는 무시 (로그만 남기고 넘어가도 됨)
     }
   }
 }

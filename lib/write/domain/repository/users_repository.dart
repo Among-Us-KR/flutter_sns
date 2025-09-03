@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_sns/write/domain/entities/users.dart';
 
 abstract class UserRepository {
@@ -11,5 +13,8 @@ abstract class UserRepository {
   Future<void> updateUserStats(String uid, UserStats stats);
 
   // 사용자의 프로필 이미지를 업로드하고 URL을 반환합니다.
-  Future<String> uploadProfileImage(String uid, String imagePath);
+  Future<String> uploadProfileImage(String uid, File file);
+
+  /// 닉네임 중복 여부를 확인합니다.
+  Future<bool> isNicknameDuplicate(String nickname);
 }

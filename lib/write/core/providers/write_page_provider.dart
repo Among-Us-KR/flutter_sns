@@ -1,24 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/data/datasources/firebase_post_datasource.dart';
+import 'package:flutter_sns/write/data/datasources/firebase_user_datasource.dart';
 import 'package:flutter_sns/write/data/repository/post_repository_impl.dart';
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
 import 'package:flutter_sns/write/domain/usecases/post_usecase/create_post_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/post_usecase/delete_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/get_post_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/post_usecase/update_post_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/post_usecase/upload_post_image_usecase.dart';
 import 'package:flutter_sns/write/presentation/screens/write/write_page_viewmodel.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// Data Layer Providers
-final firebasePostDataSourceProvider = Provider<FirebasePostDataSource>((ref) {
+// Data Layer Providers 정의
+final postDataSourceProvider = Provider<FirebasePostDataSource>((ref) {
   return FirebasePostDataSource();
 });
 
-final postRepositoryProvider = Provider<PostRepository>((ref) {
-  return PostRepositoryImpl(ref.read(firebasePostDataSourceProvider));
+final userDataSourceProvider = Provider<FirebaseUserDataSource>((ref) {
+  return FirebaseUserDataSource();
 });
 
-/// Domain Layer Providers (UseCases)
+final postRepositoryProvider = Provider<PostRepository>((ref) {
+  final postDataSource = ref.watch(postDataSourceProvider);
+  final userDataSource = ref.watch(userDataSourceProvider);
+  return PostRepositoryImpl(postDataSource, userDataSource);
+});
+
 final createPostUseCaseProvider = Provider<CreatePostUseCase>((ref) {
   return CreatePostUseCase(ref.read(postRepositoryProvider));
 });
@@ -32,25 +39,33 @@ final updatePostUseCaseProvider = Provider<UpdatePostUseCase>((ref) {
 });
 
 final deletePostUseCaseProvider = Provider<DeletePostUseCase>((ref) {
-  return DeletePostUseCase(ref.read(postRepositoryProvider));
+  final repository = ref.read(postRepositoryProvider);
+  return DeletePostUseCase(repository);
 });
 
-/// Utility Providers
 final imagePickerProvider = Provider<ImagePicker>((ref) {
   return ImagePicker();
 });
 
-/// Presentation Layer Providers
+final getPostUseCaseProvider = Provider<GetPostUseCase>((ref) {
+  return GetPostUseCase(ref.read(postRepositoryProvider));
+});
+
 final writeViewModelProvider =
     StateNotifierProvider<WriteViewModel, WriteState>((ref) {
-      final createPost = ref.read(createPostUseCaseProvider).execute;
-      final uploadImages = ref.read(uploadImagesUseCaseProvider).execute;
-      final imagePicker = ref.read(imagePickerProvider);
+      final postRepository = ref.read(postRepositoryProvider); // 게시글 생성/수정/삭제용
+      final imagePicker = ImagePicker();
+      final deletePostUseCase = ref.read(deletePostUseCaseProvider);
+      final getPostUseCase = ref.read(getPostUseCaseProvider);
+      final updatePostUseCase = ref.read(updatePostUseCaseProvider);
 
       return WriteViewModel(
-        createPost: createPost,
-        uploadImages: uploadImages,
+        createPost: postRepository.createPost,
+        uploadImages: postRepository.uploadImages,
         imagePicker: imagePicker,
+        deletePostUseCase: deletePostUseCase,
+        getPostUseCase: getPostUseCase, // 주입
+        updatePostUseCase: updatePostUseCase, // 주입
       );
     });
 

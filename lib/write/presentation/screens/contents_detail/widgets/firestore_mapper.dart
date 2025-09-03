@@ -94,7 +94,7 @@ comment_entity.Comments commentFromFirestore(
   return comment_entity.Comments(
     id: doc.id,
     postId: data['postId'] as String? ?? '',
-    authorId: data['userId'] as String? ?? '',
+    authorId: data['authorId'] as String? ?? '',
     author: author,
     content: data['content'] as String? ?? '',
     createdAt: createdAt,

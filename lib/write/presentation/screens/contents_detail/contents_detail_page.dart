@@ -1,13 +1,17 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comment_entity;
+import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/presentation/providers/post_detail_providers.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_input.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_section_view.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/post_contents_view.dart';
 import 'package:flutter_sns/write/presentation/screens/home/widgets/no_glow_scroll_behavior.dart';
+import 'package:flutter_sns/write/presentation/screens/write/write_page.dart';
 
 class ContentsDetailPage extends ConsumerWidget {
   const ContentsDetailPage({super.key, required this.postId});
@@ -17,6 +21,7 @@ class ContentsDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postAsyncValue = ref.watch(postProvider(postId));
+    // `commentsProvider`는 `post_detail_providers.dart`에 정의되어 있습니다.
     final commentsAsyncValue = ref.watch(commentsProvider(postId));
 
     return Scaffold(
@@ -38,7 +43,8 @@ class ContentsDetailPage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.more_horiz),
             onPressed: () {
-              _showMoreOptions(context);
+              // 수정된 부분: postAsyncValue를 직접 전달
+              _showMoreOptions(context, ref, postAsyncValue);
             },
           ),
         ],
@@ -91,7 +97,11 @@ class ContentsDetailPage extends ConsumerWidget {
   }
 
   /// 점 세개 아이콘을 눌렀을 때 표시되는 하단 메뉴(Bottom Sheet)
-  void _showMoreOptions(BuildContext context) {
+  void _showMoreOptions(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<Posts> postAsyncValue,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -106,15 +116,41 @@ class ContentsDetailPage extends ConsumerWidget {
                   style: textTheme.bodyLarge?.copyWith(color: AppColors.brand),
                 ),
                 onTap: () {
-                  Navigator.pop(bottomSheetContext); // 바텀 시트 닫기
-                  // TODO: 편집 페이지로 이동하는 로직 구현
+                  Navigator.pop(bottomSheetContext);
+
+                  // AsyncValue에서 데이터를 안전하게 가져오기
+                  final post = postAsyncValue.asData?.value;
+
+                  if (post != null) {
+                    final currentUserId =
+                        FirebaseAuth.instance.currentUser?.uid;
+
+                    if (post.authorId == currentUserId) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WritePage(postId: post.id),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('자신이 작성한 게시글만 편집할 수 있습니다.'),
+                        ),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('게시물 정보를 불러올 수 없습니다.')),
+                    );
+                  }
                 },
               ),
               ListTile(
                 title: Text('삭제하기', style: textTheme.bodyLarge),
                 onTap: () {
-                  Navigator.pop(bottomSheetContext); // 바텀 시트 닫기
-                  _showDeleteConfirmationDialog(context);
+                  Navigator.pop(bottomSheetContext);
+                  _showDeleteConfirmationDialog(context, ref);
                 },
               ),
             ],
@@ -125,7 +161,7 @@ class ContentsDetailPage extends ConsumerWidget {
   }
 
   /// 게시물 삭제 확인 다이얼로그
-  void _showDeleteConfirmationDialog(BuildContext context) {
+  void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -149,8 +185,21 @@ class ContentsDetailPage extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-                // TODO: 실제 게시물 삭제 로직 구현
+                final post = ref.read(postProvider(postId)).asData?.value;
+                if (post == null) {
+                  Navigator.of(dialogContext).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('게시물 정보를 불러올 수 없습니다.')),
+                  );
+                  return;
+                }
+
+                // `writeViewModelProvider`는 `write_page_provider.dart`에 정의되어 있습니다.
+                final viewModel = ref.read(writeViewModelProvider.notifier);
+                viewModel.deletePost(post.id);
+
+                Navigator.of(dialogContext).pop();
+                Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.n900,

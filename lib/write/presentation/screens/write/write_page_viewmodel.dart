@@ -1,12 +1,14 @@
-// presentation/viewmodels/write_page_viewmodel.dart
-
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/write_mode.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/delete_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/get_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/update_post_usecase.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sns/write/domain/entities/category.dart'; // Category 엔티티를 사용하도록 import 수정
+import 'package:flutter_sns/write/domain/entities/category.dart';
 
 // categories 리스트를 WriteState 클래스 바깥으로 이동
 const categories = <String>[
@@ -39,6 +41,9 @@ class WriteState {
   final int titleLength;
   final int contentLength;
 
+  final String? postId;
+  final bool isEditMode;
+
   const WriteState({
     this.title = '',
     this.content = '',
@@ -53,6 +58,8 @@ class WriteState {
     this.successMessage,
     this.titleLength = 0,
     this.contentLength = 0,
+    this.postId,
+    this.isEditMode = false,
   });
 
   WriteState copyWith({
@@ -69,6 +76,8 @@ class WriteState {
     String? successMessage,
     int? titleLength,
     int? contentLength,
+    String? postId,
+    bool? isEditMode,
   }) {
     return WriteState(
       title: title ?? this.title,
@@ -84,10 +93,11 @@ class WriteState {
       successMessage: successMessage,
       titleLength: titleLength ?? this.titleLength,
       contentLength: contentLength ?? this.contentLength,
+      postId: postId ?? this.postId,
+      isEditMode: isEditMode ?? this.isEditMode,
     );
   }
 
-  // 뷰모델 상태를 기반으로 유효성 검사를 수행하는 게터
   bool get isTitleValid => title.trim().isNotEmpty && title.length <= 30;
   bool get isContentValid =>
       content.trim().isNotEmpty && content.length <= 1000;
@@ -98,7 +108,7 @@ class WriteState {
       isContentValid &&
       isCategoryValid &&
       isModeValid &&
-      selectedImages.isNotEmpty;
+      (selectedImages.isNotEmpty || uploadedImageUrls.isNotEmpty);
 }
 
 // 도메인 의존성을 콜백으로 주입
@@ -109,14 +119,23 @@ class WriteViewModel extends StateNotifier<WriteState> {
   final CreatePost _createPost;
   final UploadImages _uploadImages;
   final ImagePicker _imagePicker;
+  final DeletePostUseCase _deletePostUseCase;
+  final GetPostUseCase _getPostUseCase;
+  final UpdatePostUseCase _updatePostUseCase;
 
   WriteViewModel({
     required CreatePost createPost,
     required UploadImages uploadImages,
     required ImagePicker imagePicker,
+    required DeletePostUseCase deletePostUseCase,
+    required GetPostUseCase getPostUseCase,
+    required UpdatePostUseCase updatePostUseCase,
   }) : _createPost = createPost,
        _uploadImages = uploadImages,
        _imagePicker = imagePicker,
+       _deletePostUseCase = deletePostUseCase,
+       _getPostUseCase = getPostUseCase,
+       _updatePostUseCase = updatePostUseCase,
        super(const WriteState());
 
   // 텍스트 업데이트 로직
@@ -181,9 +200,39 @@ class WriteViewModel extends StateNotifier<WriteState> {
     state = state.copyWith(selectedImages: list, errorMessage: null);
   }
 
-  // 게시글 작성 (도메인 로직 호출 및 에러 처리)
+  // 게시글 삭제 메서드 추가
+  Future<void> deletePost(String postId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      successMessage: null,
+    );
+
+    try {
+      await _deletePostUseCase.execute(postId, user.uid);
+
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: '게시글이 성공적으로 삭제되었습니다.',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().contains('Exception:')
+            ? e.toString().split('Exception: ')[1]
+            : '게시글 삭제 중 오류 발생: $e',
+      );
+    }
+  }
+
+  // 게시글 작성
   Future<void> createPost() async {
-    // 뷰모델 수준의 폼 유효성 검사
     if (!state.isFormValid) {
       state = state.copyWith(errorMessage: '제목, 내용, 카테고리, 모드, 이미지를 모두 입력해주세요.');
       return;
@@ -202,6 +251,17 @@ class WriteViewModel extends StateNotifier<WriteState> {
     );
 
     try {
+      // Firestore에서 사용자의 닉네임과 프로필 이미지를 조회
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userData = userDoc.data();
+      final nickname =
+          userData?['nickname'] as String? ?? user.displayName ?? '익명';
+      final profileImageUrl =
+          userData?['profileImageUrl'] as String? ?? user.photoURL;
+
       List<String> urls = [];
       if (state.selectedImages.isNotEmpty) {
         state = state.copyWith(isImageUploading: true);
@@ -216,10 +276,7 @@ class WriteViewModel extends StateNotifier<WriteState> {
       final post = Posts(
         id: '',
         authorId: user.uid,
-        author: Author(
-          nickname: user.displayName ?? '익명',
-          profileImageUrl: user.photoURL ?? '',
-        ),
+        author: Author(nickname: nickname, profileImageUrl: profileImageUrl),
         category: state.selectedCategory,
         mode: state.selectedMode!.name,
         title: state.title.trim(),
@@ -240,7 +297,6 @@ class WriteViewModel extends StateNotifier<WriteState> {
       _resetForm();
     } catch (e, st) {
       print('[Upload] failed: $e\n$st');
-
       state = state.copyWith(
         isPosting: false,
         isImageUploading: false,
@@ -248,6 +304,97 @@ class WriteViewModel extends StateNotifier<WriteState> {
             ? '알 수 없는 오류가 발생했습니다.'
             : e.toString(),
       );
+    }
+  }
+
+  // 게시글 편집을 위해 기존 데이터를 불러오는 메서드
+  Future<void> loadPostForEdit(String postId) async {
+    state = state.copyWith(isLoading: true, isEditMode: true);
+    try {
+      final post = await _getPostUseCase.execute(postId);
+      if (post == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: '게시글을 찾을 수 없습니다.',
+        );
+        return;
+      }
+      state = state.copyWith(
+        postId: post.id,
+        title: post.title,
+        content: post.content,
+        selectedCategory: post.category,
+        selectedMode: WriteMode.values.byName(post.mode),
+        uploadedImageUrls: post.images,
+        isLoading: false,
+        titleLength: post.title.length,
+        contentLength: post.content.length,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: '게시글 불러오기 실패: $e');
+    }
+  }
+
+  // 게시글 업데이트 메서드
+  Future<void> updatePost() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
+
+    if (state.postId == null) {
+      state = state.copyWith(errorMessage: '수정할 게시글 ID가 없습니다.');
+      return;
+    }
+
+    if (!state.isFormValid) {
+      state = state.copyWith(errorMessage: '모든 필드를 채워주세요.');
+      return;
+    }
+
+    state = state.copyWith(isPosting: true);
+
+    try {
+      // Firestore에서 사용자의 닉네임과 프로필 이미지를 조회
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userData = userDoc.data();
+      final nickname =
+          userData?['nickname'] as String? ?? user.displayName ?? '익명';
+      final profileImageUrl =
+          userData?['profileImageUrl'] as String? ?? user.photoURL;
+
+      List<String> newImageUrls = state.uploadedImageUrls;
+      if (state.selectedImages.isNotEmpty) {
+        newImageUrls = await _uploadImages(state.selectedImages);
+      }
+
+      final updatedPost = Posts(
+        id: state.postId!,
+        authorId: user.uid,
+        author: Author(nickname: nickname, profileImageUrl: profileImageUrl),
+        category: state.selectedCategory,
+        mode: state.selectedMode!.name,
+        title: state.title.trim(),
+        content: state.content.trim(),
+        images: newImageUrls,
+        stats: PostStats(likesCount: 0, commentsCount: 0),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        reportCount: 0,
+      );
+
+      await _updatePostUseCase.execute(updatedPost, user.uid);
+
+      state = state.copyWith(
+        isPosting: false,
+        successMessage: '게시글이 성공적으로 수정되었습니다!',
+      );
+    } catch (e) {
+      state = state.copyWith(isPosting: false, errorMessage: e.toString());
     }
   }
 

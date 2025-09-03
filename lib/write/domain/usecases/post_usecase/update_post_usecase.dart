@@ -8,22 +8,30 @@ class UpdatePostUseCase {
 
   UpdatePostUseCase(this._repository);
 
-  Future<void> execute(Posts post) async {
-    // ID 검증
+  /// 게시글 업데이트 로직을 실행하는 메서드
+  Future<void> execute(Posts post, String currentUserId) async {
+    // 1. 게시글 ID 유효성 검증
     if (post.id.trim().isEmpty) {
       throw Exception('수정할 게시글 ID가 올바르지 않습니다.');
     }
 
-    // 비즈니스 규칙 검증
+    // 2. 게시글 작성자 권한 확인
+    // 현재 사용자가 게시글 작성자인지 확인하는 로직 추가
+    if (post.authorId != currentUserId) {
+      throw Exception('자신이 작성한 게시글만 수정할 수 있습니다.');
+    }
+
+    // 3. 비즈니스 규칙에 따른 유효성 검증
     _validatePost(post);
 
-    // 수정 시간 업데이트
+    // 4. 수정 시간 업데이트
     final updatedPost = post.copyWith(updatedAt: DateTime.now());
 
-    // Repository를 통해 게시글 수정
+    // 5. Repository를 통해 게시글 수정
     await _repository.updatePost(updatedPost);
   }
 
+  /// 게시글의 제목, 내용, 카테고리 등 필드 유효성 검사
   void _validatePost(Posts post) {
     // 제목 검증
     if (post.title.trim().isEmpty) {
@@ -42,7 +50,7 @@ class UpdatePostUseCase {
     }
 
     // 카테고리 검증
-    final validCategories = [
+    const validCategories = <String>[
       '멍청스',
       '고민스',
       '대박스',
@@ -56,6 +64,7 @@ class UpdatePostUseCase {
       throw Exception('올바른 카테고리를 선택해주세요.');
     }
 
+    // 이미지 수 검증
     if (post.images.length > 5) {
       throw Exception('이미지는 최대 5개까지 업로드 가능합니다.');
     }

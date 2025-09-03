@@ -59,11 +59,11 @@ class UserStats {
   final int empathyReceived; // 추가된 필드
   final int punchReceived; // 추가된 필드
 
-  UserStats({
-    required this.postsCount,
-    required this.commentsCount,
-    required this.empathyReceived, // 생성자 업데이트
-    required this.punchReceived, // 생성자 업데이트
+  const UserStats({
+    this.postsCount = 0,
+    this.commentsCount = 0,
+    this.empathyReceived = 0,
+    this.punchReceived = 0,
   });
 
   UserStats copyWith({

@@ -36,18 +36,13 @@ class CommentService {
 
     final commentData = {
       'postId': postId,
-      'userId': currentUser.uid,
+      'authorId': currentUser.uid,
       'author': {'nickname': nickname, 'profileImageUrl': profileImageUrl},
       'content': sanitizedContent,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'reportCount': 0,
     };
-
-    // Firestore 보안 규칙에 따라, 다른 사람의 게시물('posts' 문서)을 수정할 권한이 없습니다.
-    // 따라서 댓글을 추가할 때 게시물의 댓글 수를 직접 업데이트하는 로직을 제거하고,
-    // 'comments' 컬렉션에 새 댓글을 추가하는 작업만 수행합니다.
-    // 게시물의 댓글 수를 실시간으로 정확하게 반영하려면 서버 측 로직(예: Cloud Function)을 사용해야 합니다.
     await newCommentRef.set(commentData);
   }
 }
