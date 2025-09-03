@@ -184,22 +184,39 @@ class _WritePageState extends ConsumerState<WritePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ✅ 제목 입력 (사진 위)
-                      TextField(
-                        controller: _titleCtrl,
-                        maxLength: 30,
-                        style: theme.textTheme.titleLarge?.copyWith(
+                      Text(
+                        '제목',
+                        style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: '제목을 입력하세요 (최대 30자)',
-                          border: UnderlineInputBorder(),
-                          counterText: '',
-                          filled: false,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: cs.outline.withOpacity(0.5),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _titleCtrl,
+                          maxLength: 30,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '제목을 입력하세요 (최대 30자)',
+                            border: InputBorder.none, // 기존 밑줄 제거
+                            counterText: '',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
 
                       // 이미지 카루셀
                       ImageCarouselFreeScroll(

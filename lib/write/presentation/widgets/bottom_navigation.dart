@@ -12,7 +12,7 @@ class BottomNavigation extends StatelessWidget {
 
     // 현재 경로
     final location = GoRouterState.of(context).uri.toString();
-    // 작성(/write)·프로필편집(/profile/edit)에서는 하단바 숨김
+    // 작성(/write)·프로필편집(/profile/edit),게시글편집에서는 하단바 숨김
     final hideBottomBar =
         location.startsWith('/write') ||
         location.startsWith('/profile/edit') ||
