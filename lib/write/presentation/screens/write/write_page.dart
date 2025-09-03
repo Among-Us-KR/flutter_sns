@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
 import 'package:flutter_sns/write/core/services/message_service.dart';
+import 'package:flutter_sns/write/domain/entities/category.dart';
 import 'package:flutter_sns/write/domain/entities/write_mode.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/bottom_button.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/category_selector.dart';
@@ -9,18 +10,6 @@ import 'package:flutter_sns/write/presentation/screens/write/widgets/content_tex
 import 'package:flutter_sns/write/presentation/screens/write/widgets/image_carousel.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/mode_card.dart';
 import 'package:image_picker/image_picker.dart';
-
-// categories 리스트를 WritePage_viewmodel.dart에서 가져오도록 수정
-const categories = <String>[
-  '멍청스',
-  '고민스',
-  '대박스',
-  '행복스',
-  '슬펐스',
-  '빡쳤스',
-  '놀랐스',
-  '솔직스',
-];
 
 class WritePage extends ConsumerStatefulWidget {
   const WritePage({super.key, this.postId});
@@ -240,7 +229,10 @@ class _WritePageState extends ConsumerState<WritePage> {
 
                       // 카테고리
                       CategorySelector(
-                        categories: categories,
+                        categories: Category.values
+                            .skip(1)
+                            .map((c) => c.displayName)
+                            .toList(),
                         selectedCategory: state.selectedCategory,
                         onCategorySelected: vm.selectCategory,
                       ),
