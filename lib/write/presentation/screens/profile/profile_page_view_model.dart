@@ -1,221 +1,369 @@
-// // Post, Comment 엔티티와 리포지토리 유스케이스도 추가해야 합니다.
-// // '내 글', '내 댓글', '내 공감' 탭 구현을 위해 필요
+import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sns/write/data/datasources/firebase_storage_datasource.dart';
+import 'package:flutter_sns/write/data/datasources/user_datasource.dart';
+import 'package:flutter_sns/write/data/repository/users_repository_impl.dart';
+import 'package:flutter_sns/write/domain/entities/users.dart' as domain;
+import 'package:flutter_sns/write/domain/repository/users_repository.dart';
+import 'package:flutter_sns/write/domain/usecases/profile_usecase/check_nickname_duplicate_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/profile_usecase/get_user_profile_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/profile_usecase/update_user_profile_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/profile_usecase/update_user_stats_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/profile_usecase/upload_profile_image_usecase.dart';
 
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:flutter_sns/write/domain/entities/users.dart' as entity;
-// import 'package:flutter_sns/write/domain/usecases/get_user_profile_usecase.dart';
-// import 'package:flutter_sns/write/domain/usecases/update_user_profile_usecase.dart';
-// import 'package:flutter_sns/write/domain/usecases/upload_profile_image_usecase.dart';
+//State
+class ProfileState {
+  final domain.User? user;
 
-// // 탭 종류를 정의하는 enum
-// enum ProfileTab { posts, comments, likes }
+  // 로딩 상태
+  final bool isLoading;
+  final bool isSaving;
 
-// // 뷰모델의 상태
-// class ProfileState {
-//   final entity.User? user;
-//   final bool isLoading;
-//   final String? errorMessage;
-//   final bool isProfileUpdating;
-//   final String? successMessage;
-//   final bool isNicknameChecking;
-//   final bool isNicknameDuplicate;
-//   final List<Post> posts;
-//   final List<Comment> comments;
-//   final List<Post> likedPosts;
-//   final ProfileTab selectedTab;
+  // 닉네임 검사 상태
+  final bool isCheckingNickname;
+  final String? nicknameError;
 
-//   const ProfileState({
-//     this.user,
-//     this.isLoading = false,
-//     this.errorMessage,
-//     this.isProfileUpdating = false,
-//     this.successMessage,
-//     this.isNicknameChecking = false,
-//     this.isNicknameDuplicate = false,
-//     this.posts = const [],
-//     this.comments = const [],
-//     this.likedPosts = const [],
-//     this.selectedTab = ProfileTab.posts,
-//   });
+  // 편집 드래프트
+  final String nicknameDraft;
+  final File? imageDraft; // 새로 선택된 이미지(선택 안했으면 null)
+  final bool? pushDraft; // null이면 변경 없음
 
-//   ProfileState copyWith({
-//     entity.User? user,
-//     bool? isLoading,
-//     String? errorMessage,
-//     bool? isProfileUpdating,
-//     String? successMessage,
-//     bool? isNicknameChecking,
-//     bool? isNicknameDuplicate,
-//     List<Post>? posts,
-//     List<Comment>? comments,
-//     List<Post>? likedPosts,
-//     ProfileTab? selectedTab,
-//   }) {
-//     return ProfileState(
-//       user: user ?? this.user,
-//       isLoading: isLoading ?? this.isLoading,
-//       errorMessage: errorMessage,
-//       isProfileUpdating: isProfileUpdating ?? this.isProfileUpdating,
-//       successMessage: successMessage,
-//       isNicknameChecking: isNicknameChecking ?? this.isNicknameChecking,
-//       isNicknameDuplicate: isNicknameDuplicate ?? this.isNicknameDuplicate,
-//       posts: posts ?? this.posts,
-//       comments: comments ?? this.comments,
-//       likedPosts: likedPosts ?? this.likedPosts,
-//       selectedTab: selectedTab ?? this.selectedTab,
-//     );
-//   }
-// }
+  final String? errorMessage;
+  final String? successMessage;
 
-// class ProfileViewModel extends StateNotifier<ProfileState> {
-//   final GetUserProfileUseCase _getUserProfileUseCase;
-//   final UpdateUserProfileUseCase _updateUserProfileUseCase;
-//   final UploadProfileImageUseCase _uploadProfileImageUseCase;
-//   final CheckNicknameDuplicateUseCase _checkNicknameDuplicateUseCase;
+  const ProfileState({
+    this.user,
+    this.isLoading = false,
+    this.isSaving = false,
+    this.isCheckingNickname = false,
+    this.nicknameError,
+    this.nicknameDraft = '',
+    this.imageDraft,
+    this.pushDraft,
+    this.errorMessage,
+    this.successMessage,
+  });
 
-//   ProfileViewModel({
-//     required GetUserProfileUseCase getUserProfileUseCase,
-//     required UpdateUserProfileUseCase updateUserProfileUseCase,
-//     required UploadProfileImageUseCase uploadProfileImageUseCase,
-//     required CheckNicknameDuplicateUseCase checkNicknameDuplicateUseCase,
-//   }) : _getUserProfileUseCase = getUserProfileUseCase,
-//        _updateUserProfileUseCase = updateUserProfileUseCase,
-//        _uploadProfileImageUseCase = uploadProfileImageUseCase,
-//        _checkNicknameDuplicateUseCase = checkNicknameDuplicateUseCase,
-//        super(const ProfileState());
+  ProfileState copyWith({
+    domain.User? user,
+    bool? isLoading,
+    bool? isSaving,
+    bool? isCheckingNickname,
+    String? nicknameError,
+    String? errorMessage,
+    String? successMessage,
+    String? nicknameDraft,
+    File? imageDraft,
+    bool? pushDraft,
+  }) {
+    return ProfileState(
+      user: user ?? this.user,
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      isCheckingNickname: isCheckingNickname ?? this.isCheckingNickname,
+      nicknameError: nicknameError,
+      errorMessage: errorMessage,
+      successMessage: successMessage,
+      nicknameDraft: nicknameDraft ?? this.nicknameDraft,
+      imageDraft: imageDraft,
+      pushDraft: pushDraft,
+    );
+  }
 
-//   // 1. 프로필 정보 로드
-//   Future<void> loadUserProfile() async {
-//     final uid = FirebaseAuth.instance.currentUser?.uid;
-//     if (uid == null) {
-//       state = state.copyWith(errorMessage: '로그인 정보가 없습니다.');
-//       return;
-//     }
-//     state = state.copyWith(isLoading: true, errorMessage: null);
-//     try {
-//       final user = await _getUserProfileUseCase.execute(uid);
-//       state = state.copyWith(user: user, isLoading: false);
-//       // '내 글', '내 댓글', '내 공감' 데이터도 여기서 로드해야 합니다.
-//     } catch (e) {
-//       state = state.copyWith(
-//         isLoading: false,
-//         errorMessage: '프로필 로딩 실패: ${e.toString()}',
-//       );
-//     }
-//   }
+  bool get hasDraftChanged {
+    if (user == null) return false;
+    final nickChanged =
+        nicknameDraft.trim().isNotEmpty &&
+        nicknameDraft.trim() != user!.nickname.trim();
+    final imageChanged = imageDraft != null;
+    final pushChanged =
+        (pushDraft != null) && (pushDraft != user!.pushNotifications);
+    return nickChanged || imageChanged || pushChanged;
+  }
 
-//   // 2. 프로필 이미지 업데이트
-//   Future<void> updateProfileImage(File imageFile) async {
-//     final user = state.user;
-//     if (user == null) {
-//       state = state.copyWith(errorMessage: '사용자 정보가 없습니다.');
-//       return;
-//     }
-//     state = state.copyWith(isProfileUpdating: true, errorMessage: null);
-//     try {
-//       final imageUrl = await _uploadProfileImageUseCase.execute(
-//         user.uid,
-//         imageFile.path,
-//       );
+  bool get canSave {
+    if (user == null) return false;
+    if (isCheckingNickname || isSaving) return false;
 
-//       // 이미지 URL이 업데이트된 새로운 유저 엔티티 생성
-//       final updatedUser = user.copyWith(profileImageUrl: imageUrl);
+    // 닉네임이 바뀌는 경우엔 비어있지 않아야 하고 에러가 없어야 함
+    final nickWillChange =
+        nicknameDraft.trim().isNotEmpty &&
+        nicknameDraft.trim() != user!.nickname.trim();
+    if (nickWillChange && (nicknameError != null)) return false;
 
-//       // 업데이트된 엔티티를 유스케이스로 전달
-//       await _updateUserProfileUseCase.execute(updatedUser);
+    return hasDraftChanged;
+  }
+}
 
-//       state = state.copyWith(
-//         user: updatedUser,
-//         isProfileUpdating: false,
-//         successMessage: '프로필 이미지가 성공적으로 변경되었습니다.',
-//       );
-//     } catch (e) {
-//       state = state.copyWith(
-//         isProfileUpdating: false,
-//         errorMessage: '이미지 업로드 실패: ${e.toString()}',
-//       );
-//     }
-//   }
+//ViewModel
+class ProfileViewModel extends StateNotifier<ProfileState> {
+  final GetUserProfileUseCase _getUserProfile;
+  final UpdateUserProfileUseCase _updateUserProfile;
+  final UpdateUserStatsUseCase _updateUserStats;
+  final UploadProfileImageUseCase _uploadProfileImage;
+  final CheckNicknameDuplicateUseCase _checkNicknameDuplicate;
 
-//   // 3. 닉네임 중복 체크
-//   Future<void> checkNicknameDuplicate(String nickname) async {
-//     if (nickname.isEmpty) {
-//       state = state.copyWith(
-//         isNicknameChecking: false,
-//         isNicknameDuplicate: false,
-//       );
-//       return;
-//     }
-//     state = state.copyWith(isNicknameChecking: true);
-//     try {
-//       final isDuplicate = await _checkNicknameDuplicateUseCase.execute(
-//         nickname,
-//       );
-//       state = state.copyWith(
-//         isNicknameChecking: false,
-//         isNicknameDuplicate: isDuplicate,
-//       );
-//     } catch (e) {
-//       state = state.copyWith(
-//         isNicknameChecking: false,
-//         errorMessage: '닉네임 중복 확인 실패: ${e.toString()}',
-//       );
-//     }
-//   }
+  ProfileViewModel({
+    required GetUserProfileUseCase getUserProfile,
+    required UpdateUserProfileUseCase updateUserProfile,
+    required UpdateUserStatsUseCase updateUserStats,
+    required UploadProfileImageUseCase uploadProfileImage,
+    required CheckNicknameDuplicateUseCase checkNicknameDuplicate,
+  }) : _getUserProfile = getUserProfile,
+       _updateUserProfile = updateUserProfile,
+       _updateUserStats = updateUserStats,
+       _uploadProfileImage = uploadProfileImage,
+       _checkNicknameDuplicate = checkNicknameDuplicate,
+       super(const ProfileState());
 
-//   // 4. 프로필 정보 저장
-//   Future<void> saveProfile({required String nickname}) async {
-//     final user = state.user;
-//     if (user == null) {
-//       state = state.copyWith(errorMessage: '사용자 정보가 없습니다.');
-//       return;
-//     }
-//     state = state.copyWith(isProfileUpdating: true, errorMessage: null);
-//     try {
-//       // 닉네임만 변경하는 경우를 처리
-//       final updatedUser = user.copyWith(nickname: nickname);
-//       await _updateUserProfileUseCase.execute(updatedUser);
+  // 현재 로그인 사용자 로드
+  Future<void> loadCurrentUser() async {
+    final uid = fa.FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
+    await loadByUid(uid);
+  }
 
-//       state = state.copyWith(
-//         user: updatedUser,
-//         isProfileUpdating: false,
-//         successMessage: '프로필 정보가 성공적으로 저장되었습니다.',
-//       );
-//     } catch (e) {
-//       state = state.copyWith(
-//         isProfileUpdating: false,
-//         errorMessage: '프로필 저장 실패: ${e.toString()}',
-//       );
-//     }
-//   }
+  /// 특정 UID 로드 (타 사용자 프로필 조회 시)
+  Future<void> loadByUid(String uid) async {
+    try {
+      state = state.copyWith(
+        isLoading: true,
+        errorMessage: null,
+        successMessage: null,
+      );
+      final u = await _getUserProfile.execute(uid);
 
-//   // 5. 탭 변경 핸들러
-//   void selectTab(int index) {
-//     state = state.copyWith(selectedTab: ProfileTab.values[index]);
-//   }
+      // 드래프트 초기화
+      state = state.copyWith(
+        isLoading: false,
+        user: u,
+        nicknameDraft: u.nickname,
+        imageDraft: null,
+        pushDraft: u.pushNotifications,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
 
-//   void clearMessage() {
-//     state = state.copyWith(errorMessage: null, successMessage: null);
-//   }
-// }
+  // 닉네임 드래프트 변경 (UI 바인딩)
+  void setNicknameDraft(String v) {
+    // 길이/공백 등 간단 검증 (원하면 규칙 추가)
+    if (v.trim().isEmpty) {
+      state = state.copyWith(nicknameDraft: v, nicknameError: '닉네임을 입력해 주세요.');
+      return;
+    }
+    state = state.copyWith(nicknameDraft: v, nicknameError: null);
+  }
 
-// final profileViewModelProvider =
-//     StateNotifierProvider<ProfileViewModel, ProfileState>((ref) {
-//       final getUserProfileUseCase = ref.read(getUserProfileUseCaseProvider);
-//       final updateUserProfileUseCase = ref.read(
-//         updateUserProfileUseCaseProvider,
-//       );
-//       final uploadProfileImageUseCase = ref.read(
-//         uploadProfileImageUseCaseProvider,
-//       );
-//       final checkNicknameDuplicateUseCase = ref.read(
-//         checkNicknameDuplicateUseCaseProvider,
-//       );
+  // /// 푸시 알림 드래프트 토글
+  // void setPushDraft(bool value) {
+  //   state = state.copyWith(pushDraft: value);
+  // }
 
-//       return ProfileViewModel(
-//         getUserProfileUseCase: getUserProfileUseCase,
-//         updateUserProfileUseCase: updateUserProfileUseCase,
-//         uploadProfileImageUseCase: uploadProfileImageUseCase,
-//         checkNicknameDuplicateUseCase: checkNicknameDuplicateUseCase,
-//       );
-//     });
+  /// 새 이미지 파일 선택
+  void setImageDraft(File? file) {
+    state = state.copyWith(imageDraft: file);
+  }
+
+  /// 닉네임 중복 체크
+  Future<bool> checkNicknameDuplicate() async {
+    if (state.user == null) return false;
+
+    final newName = state.nicknameDraft.trim();
+    final currentName = state.user!.nickname.trim();
+
+    // 동일 닉네임이면 중복아님
+    if (newName == currentName) {
+      state = state.copyWith(nicknameError: null);
+      return true;
+    }
+
+    if (newName.isEmpty) {
+      state = state.copyWith(nicknameError: '닉네임을 입력해 주세요.');
+      return false;
+    }
+
+    try {
+      state = state.copyWith(isCheckingNickname: true, nicknameError: null);
+      final isDup = await _checkNicknameDuplicate.execute(newName);
+      if (isDup) {
+        state = state.copyWith(
+          isCheckingNickname: false,
+          nicknameError: '이미 사용 중인 닉네임입니다.',
+        );
+        return false;
+      } else {
+        state = state.copyWith(isCheckingNickname: false, nicknameError: null);
+        return true;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isCheckingNickname: false,
+        nicknameError: '닉네임 확인 중 오류가 발생했습니다.',
+      );
+      return false;
+    }
+  }
+
+  /// 프로필 저장 (닉네임/이미지/푸시옵션 변경 포함)
+  Future<void> saveProfile() async {
+    if (state.user == null) return;
+    if (!state.canSave) return;
+
+    try {
+      state = state.copyWith(
+        isSaving: true,
+        errorMessage: null,
+        successMessage: null,
+      );
+
+      final uid = state.user!.uid;
+
+      // 1) 닉네임 변경 예정이면 먼저 중복체크
+      final nickWillChange =
+          state.nicknameDraft.trim().isNotEmpty &&
+          state.nicknameDraft.trim() != state.user!.nickname.trim();
+      if (nickWillChange) {
+        final ok = await checkNicknameDuplicate();
+        if (!ok) {
+          state = state.copyWith(isSaving: false);
+          return;
+        }
+      }
+
+      // 2) 이미지 업로드 (드래프트가 있을 때만)
+      String? newPhotoUrl = state.user!.profileImageUrl;
+      if (state.imageDraft != null) {
+        final url = await _uploadProfileImage.execute(uid, state.imageDraft!);
+        newPhotoUrl = url;
+      }
+
+      // // 3) 푸시 설정 반영
+      // final push = state.pushDraft ?? state.user!.pushNotifications;
+
+      // 4) User 엔티티 업데이트
+      final updated = state.user!.copyWith(
+        nickname: state.nicknameDraft.trim(),
+        profileImageUrl: newPhotoUrl,
+        // pushNotifications: push,
+        updatedAt: DateTime.now(), // 실제 저장은 DS에서 serverTimestamp, 엔티티는 표시용
+      );
+
+      await _updateUserProfile.execute(updated);
+
+      // 5) 성공 반영 + 드래프트 초기화
+      state = state.copyWith(
+        isSaving: false,
+        user: updated,
+        imageDraft: null,
+        successMessage: '프로필이 업데이트되었습니다.',
+      );
+    } catch (e) {
+      state = state.copyWith(isSaving: false, errorMessage: e.toString());
+    }
+  }
+
+  /// 통계 업데이트(예: 게시글/공감/팩폭 카운트 갱신)
+  Future<void> updateStats(domain.UserStats stats) async {
+    if (state.user == null) return;
+    try {
+      await _updateUserStats.execute(state.user!.uid, stats);
+      // 로컬에도 반영
+      state = state.copyWith(user: state.user!.copyWith(stats: stats));
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  /// 메시지 클리어 (Snackbar 이후)
+  void clearMessages() {
+    state = state.copyWith(
+      errorMessage: null,
+      successMessage: null,
+      nicknameError: null,
+    );
+  }
+}
+
+// Providers
+
+// DataSource Providers
+final userDatasourceProvider = Provider<UserDatasource>((ref) {
+  return FirebaseUserDatasource();
+});
+
+final firebaseStorageDataSourceProvider = Provider<FirebaseStorageDataSource>((
+  ref,
+) {
+  return FirebaseStorageDataSource();
+});
+
+// UserRepository Provider 수정 (기존의 throw 구문을 교체)
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final userDs = ref.watch(userDatasourceProvider);
+  final storageDs = ref.watch(firebaseStorageDataSourceProvider);
+  return UserRepositoryImpl(userDs, storageDs);
+});
+
+final getUserProfileUseCaseProvider = Provider<GetUserProfileUseCase>((ref) {
+  final repo = ref.watch(userRepositoryProvider);
+  return GetUserProfileUseCase(repo);
+});
+
+final updateUserProfileUseCaseProvider = Provider<UpdateUserProfileUseCase>((
+  ref,
+) {
+  final repo = ref.watch(userRepositoryProvider);
+  return UpdateUserProfileUseCase(repo);
+});
+
+final updateUserStatsUseCaseProvider = Provider<UpdateUserStatsUseCase>((ref) {
+  final repo = ref.watch(userRepositoryProvider);
+  return UpdateUserStatsUseCase(repo);
+});
+
+final uploadProfileImageUseCaseProvider = Provider<UploadProfileImageUseCase>((
+  ref,
+) {
+  final repo = ref.watch(userRepositoryProvider);
+  return UploadProfileImageUseCase(repo);
+});
+
+final checkNicknameDuplicateUseCaseProvider =
+    Provider<CheckNicknameDuplicateUseCase>((ref) {
+      final repo = ref.watch(userRepositoryProvider);
+      return CheckNicknameDuplicateUseCase(repo);
+    });
+
+// 프로필 VM (family: 다른 유저 uid로도 조회 가능)
+// uid가 null이면 현재 로그인 사용자를 로드하도록 편의 제공
+final profileViewModelProvider =
+    StateNotifierProvider.family<ProfileViewModel, ProfileState, String?>((
+      ref,
+      uid,
+    ) {
+      final vm = ProfileViewModel(
+        getUserProfile: ref.watch(getUserProfileUseCaseProvider),
+        updateUserProfile: ref.watch(updateUserProfileUseCaseProvider),
+        updateUserStats: ref.watch(updateUserStatsUseCaseProvider),
+        uploadProfileImage: ref.watch(uploadProfileImageUseCaseProvider),
+        checkNicknameDuplicate: ref.watch(
+          checkNicknameDuplicateUseCaseProvider,
+        ),
+      );
+
+      // 초기 로드
+      if (uid == null) {
+        // 현재 로그인 사용자
+        Future.microtask(() => vm.loadCurrentUser());
+      } else {
+        Future.microtask(() => vm.loadByUid(uid));
+      }
+
+      return vm;
+    });

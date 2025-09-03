@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_sns/write/data/models/users_model.dart';
 
 /// Firestore users 컬렉션용 데이터소스
-class FirebaseUserDatasource {
+class FirebaseUserDataSource {
   final FirebaseFirestore _firestore;
 
-  FirebaseUserDatasource({FirebaseFirestore? firestore})
+  FirebaseUserDataSource({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _col =>
@@ -53,5 +53,43 @@ class FirebaseUserDatasource {
         .limit(1)
         .get();
     return snap.docs.isNotEmpty;
+  }
+
+  // 게시글 개수를 1 증가시키는 메서드
+  Future<void> incrementUserPostsCount(String userId) async {
+    final userRef = _firestore.collection('users').doc(userId);
+    await userRef.update({'stats.postsCount': FieldValue.increment(1)});
+  }
+
+  // 게시글 개수를 1 감소시키는 메서드
+  Future<void> decrementUserPostsCount(String userId) async {
+    final userRef = _firestore.collection('users').doc(userId);
+    await userRef.update({'stats.postsCount': FieldValue.increment(-1)});
+  }
+
+  // 받은 공감 수 증가/감소
+  Future<void> incrementEmpathyCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.empathyReceived': FieldValue.increment(1),
+    });
+  }
+
+  Future<void> decrementEmpathyCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.empathyReceived': FieldValue.increment(-1),
+    });
+  }
+
+  // 받은 팩폭 수 증가/감소
+  Future<void> incrementPunchCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.punchReceived': FieldValue.increment(1),
+    });
+  }
+
+  Future<void> decrementPunchCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.punchReceived': FieldValue.increment(-1),
+    });
   }
 }

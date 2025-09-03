@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/data/datasources/firebase_post_datasource.dart';
+import 'package:flutter_sns/write/data/datasources/firebase_user_datasource.dart';
 import 'package:flutter_sns/write/data/repository/post_repository_impl.dart';
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
 import 'package:flutter_sns/write/domain/usecases/post_usecase/create_post_usecase.dart';
@@ -9,13 +10,19 @@ import 'package:flutter_sns/write/domain/usecases/post_usecase/upload_post_image
 import 'package:flutter_sns/write/presentation/screens/write/write_page_viewmodel.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// Data Layer Providers
-final firebasePostDataSourceProvider = Provider<FirebasePostDataSource>((ref) {
+// Data Layer Providers 정의
+final postDataSourceProvider = Provider<FirebasePostDataSource>((ref) {
   return FirebasePostDataSource();
 });
 
+final userDataSourceProvider = Provider<FirebaseUserDataSource>((ref) {
+  return FirebaseUserDataSource();
+});
+
 final postRepositoryProvider = Provider<PostRepository>((ref) {
-  return PostRepositoryImpl(ref.read(firebasePostDataSourceProvider));
+  final postDataSource = ref.watch(postDataSourceProvider);
+  final userDataSource = ref.watch(userDataSourceProvider);
+  return PostRepositoryImpl(postDataSource, userDataSource);
 });
 
 /// Domain Layer Providers (UseCases)
