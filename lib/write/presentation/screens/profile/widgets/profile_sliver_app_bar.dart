@@ -27,7 +27,7 @@ class ProfileSliverAppBar extends StatelessWidget {
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
           final minH = appBarH;
-          final maxH = appBarH + _headerHeight + (_statsOverflow * 0.5);
+          final maxH = appBarH + _headerHeight + (_statsOverflow * 0.4);
           final h = constraints.maxHeight.clamp(minH, maxH);
           final t = ((h - minH) / (maxH - minH)).clamp(0.0, 1.0);
 
@@ -88,7 +88,7 @@ class ProfileSliverAppBar extends StatelessWidget {
         ),
         // 프로필 헤더 + 통계
         SizedBox(
-          height: _headerHeight + (_statsOverflow * 0.9),
+          height: _headerHeight + (_statsOverflow * 0.4),
           child: Stack(
             clipBehavior: Clip.none,
             children: [

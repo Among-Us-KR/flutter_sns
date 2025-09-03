@@ -4,7 +4,6 @@ import 'package:flutter_sns/write/core/services/message_service.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
 import 'package:flutter_sns/write/presentation/screens/login/login_detail_page.dart';
-import 'package:flutter_sns/write/presentation/screens/post_detail/post_detail_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_page.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/profile_page.dart';
 import 'package:flutter_sns/write/presentation/screens/write/write_page.dart';
@@ -39,7 +38,7 @@ final GoRouter router = GoRouter(
       name: 'splash',
       builder: (context, state) => const SplashPage(),
     ),
-      GoRoute(
+    GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginPage(),
@@ -49,7 +48,7 @@ final GoRouter router = GoRouter(
       name: 'login_detail',
       builder: (context, state) => const LoginDetailPage(),
     ),
-// 메인 앱 구조 (하단 탭 포함)
+    // 메인 앱 구조 (하단 탭 포함)
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return BottomNavigation(navigationShell: navigationShell);
