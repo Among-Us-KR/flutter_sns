@@ -17,4 +17,11 @@ abstract class UserRepository {
 
   /// 닉네임 중복 여부를 확인합니다.
   Future<bool> isNicknameDuplicate(String nickname);
+
+  // 프로필 변경 시 전역에 업데이트합니다
+  Future<void> updateDenormalizedUserData({
+    required String uid,
+    required String newNickname,
+    required String? newProfileImageUrl,
+  });
 }

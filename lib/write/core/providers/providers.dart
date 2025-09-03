@@ -129,6 +129,7 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepositoryImpl(
     ref.watch(userDatasourceProvider),
     ref.watch(firebaseStorageDataSourceProvider),
+    ref.watch(firestoreProvider),
   );
 });
 

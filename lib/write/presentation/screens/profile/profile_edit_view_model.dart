@@ -111,19 +111,22 @@ class ProfileEditViewModel extends StateNotifier<ProfileEditState> {
       'DEBUG: 뷰모델 상태 업데이트 - profileImageFile: ${state.profileImageFile != null}',
     );
   }
-
   // lib/write/presentation/screens/profile/profile_edit_view_model.dart
 
   Future<bool> saveProfile() async {
     state = state.copyWith(isSaving: true, errorMessage: null);
 
     try {
-      String? finalImageUrl = state.profileImageUrl;
+      // 1. Get the current user profile to ensure you have the latest data.
+      final userProfile = await _userRepository.getUserProfile(_currentUserId);
+      String? finalImageUrl =
+          userProfile.profileImageUrl; // Use the current URL as a default.
+
       print(
         'DEBUG: saveProfile 시작 - profileImageFile: ${state.profileImageFile != null}',
       );
 
-      // 1. Check if a new profile image file has been selected.
+      // 2. If a new profile image file has been selected, upload it.
       if (state.profileImageFile != null) {
         print('DEBUG: 새로운 프로필 이미지 파일을 업로드합니다.');
         finalImageUrl = await _userRepository.uploadProfileImage(
@@ -135,15 +138,21 @@ class ProfileEditViewModel extends StateNotifier<ProfileEditState> {
         print('DEBUG: 새로운 이미지 파일이 선택되지 않았습니다. 기존 URL 사용.');
       }
 
-      // 2. Prepare the user model for updating.
-      final userProfile = await _userRepository.getUserProfile(_currentUserId);
+      // 3. Prepare the user model for updating.
       final updatedUser = userProfile.copyWith(
         nickname: state.nickname,
         profileImageUrl: finalImageUrl,
       );
 
-      // 3. Update the user profile in Firestore.
+      // 4. Update the main user profile in Firestore.
       await _userRepository.updateUserProfile(updatedUser);
+
+      // 5. Fan-out write to update all posts and comments.
+      await _userRepository.updateDenormalizedUserData(
+        uid: _currentUserId,
+        newNickname: updatedUser.nickname,
+        newProfileImageUrl: updatedUser.profileImageUrl,
+      );
 
       state = state.copyWith(
         isSaving: false,
@@ -152,7 +161,7 @@ class ProfileEditViewModel extends StateNotifier<ProfileEditState> {
         profileImageUrl: finalImageUrl,
       );
 
-      return true; // Return true on success
+      return true;
     } catch (e, stacktrace) {
       print('DEBUG: 프로필 저장 실패: $e');
       print('DEBUG: 스택 트레이스: $stacktrace');
@@ -160,7 +169,7 @@ class ProfileEditViewModel extends StateNotifier<ProfileEditState> {
         isSaving: false,
         errorMessage: '프로필 저장 실패: ${e.toString()}',
       );
-      return false; // Return false on error
+      return false;
     }
   }
 }
