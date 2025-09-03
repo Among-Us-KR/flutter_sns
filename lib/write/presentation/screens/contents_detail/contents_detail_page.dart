@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/utils/xss.dart';
+import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comment_entity;
 import 'package:flutter_sns/write/domain/entities/posts.dart';
@@ -219,7 +220,7 @@ class ContentsDetailPage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.more_horiz),
             onPressed: () {
-              _showMoreOptions(context);
+              _showMoreOptions(context, ref);
             },
           ),
         ],
@@ -275,7 +276,7 @@ class ContentsDetailPage extends ConsumerWidget {
   }
 
   /// 점 세개 아이콘을 눌렀을 때 표시되는 하단 메뉴(Bottom Sheet)
-  void _showMoreOptions(BuildContext context) {
+  void _showMoreOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -298,7 +299,7 @@ class ContentsDetailPage extends ConsumerWidget {
                 title: Text('삭제하기', style: textTheme.bodyLarge),
                 onTap: () {
                   Navigator.pop(bottomSheetContext); // 바텀 시트 닫기
-                  _showDeleteConfirmationDialog(context);
+                  _showDeleteConfirmationDialog(context, ref);
                 },
               ),
             ],
@@ -309,7 +310,7 @@ class ContentsDetailPage extends ConsumerWidget {
   }
 
   /// 게시물 삭제 확인 다이얼로그
-  void _showDeleteConfirmationDialog(BuildContext context) {
+  void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -333,8 +334,25 @@ class ContentsDetailPage extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-                // TODO: 실제 게시물 삭제 로직 구현
+                // Get the post data from the provider
+                final post = ref.read(postProvider(postId)).asData?.value;
+                if (post == null) {
+                  // Handle case where post data is not available
+                  Navigator.of(dialogContext).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('게시물 정보를 불러올 수 없습니다.')),
+                  );
+                  return;
+                }
+
+                // Access the viewModel
+                final viewModel = ref.read(writeViewModelProvider.notifier);
+
+                // Call the delete method
+                viewModel.deletePost(post.id);
+
+                Navigator.of(dialogContext).pop(); // Close the dialog
+                Navigator.of(context).pop(); // Go back to the previous page
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.n900,

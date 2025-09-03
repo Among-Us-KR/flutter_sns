@@ -39,7 +39,8 @@ final updatePostUseCaseProvider = Provider<UpdatePostUseCase>((ref) {
 });
 
 final deletePostUseCaseProvider = Provider<DeletePostUseCase>((ref) {
-  return DeletePostUseCase(ref.read(postRepositoryProvider));
+  final repository = ref.read(postRepositoryProvider);
+  return DeletePostUseCase(repository);
 });
 
 /// Utility Providers
@@ -48,16 +49,18 @@ final imagePickerProvider = Provider<ImagePicker>((ref) {
 });
 
 /// Presentation Layer Providers
+
 final writeViewModelProvider =
     StateNotifierProvider<WriteViewModel, WriteState>((ref) {
-      final createPost = ref.read(createPostUseCaseProvider).execute;
-      final uploadImages = ref.read(uploadImagesUseCaseProvider).execute;
-      final imagePicker = ref.read(imagePickerProvider);
+      final postRepository = ref.read(postRepositoryProvider); // 게시글 생성/수정/삭제용
+      final imagePicker = ImagePicker();
+      final deletePostUseCase = ref.read(deletePostUseCaseProvider);
 
       return WriteViewModel(
-        createPost: createPost,
-        uploadImages: uploadImages,
+        createPost: postRepository.createPost,
+        uploadImages: postRepository.uploadImages,
         imagePicker: imagePicker,
+        deletePostUseCase: deletePostUseCase,
       );
     });
 

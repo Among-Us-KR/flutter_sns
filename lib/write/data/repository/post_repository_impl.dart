@@ -144,4 +144,13 @@ class PostRepositoryImpl implements PostRepository {
       throw Exception('게시글 조회 중 오류 발생: $e');
     }
   }
+
+  @override
+  Future<void> decrementUserPostsCount(String uid) async {
+    try {
+      await _userDataSource.decrementUserPostsCount(uid);
+    } catch (e) {
+      throw Exception('사용자 게시글 수 감소 중 오류 발생: $e');
+    }
+  }
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/write_mode.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/delete_post_usecase.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_sns/write/domain/entities/category.dart'; // Category 엔티티를 사용하도록 import 수정
@@ -109,14 +110,17 @@ class WriteViewModel extends StateNotifier<WriteState> {
   final CreatePost _createPost;
   final UploadImages _uploadImages;
   final ImagePicker _imagePicker;
+  final DeletePostUseCase _deletePostUseCase;
 
   WriteViewModel({
     required CreatePost createPost,
     required UploadImages uploadImages,
     required ImagePicker imagePicker,
+    required DeletePostUseCase deletePostUseCase, // 추가된 의존성
   }) : _createPost = createPost,
        _uploadImages = uploadImages,
        _imagePicker = imagePicker,
+       _deletePostUseCase = deletePostUseCase, // 초기화
        super(const WriteState());
 
   // 텍스트 업데이트 로직
@@ -179,6 +183,38 @@ class WriteViewModel extends StateNotifier<WriteState> {
     if (index < 0 || index >= list.length) return;
     list.removeAt(index);
     state = state.copyWith(selectedImages: list, errorMessage: null);
+  }
+
+  // 게시글 삭제 메서드 추가
+  Future<void> deletePost(String postId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      successMessage: null,
+    );
+
+    try {
+      // UseCase를 호출하여 게시글 삭제 로직 실행
+      await _deletePostUseCase.execute(postId, user.uid);
+
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: '게시글이 성공적으로 삭제되었습니다.',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().contains('Exception:')
+            ? e.toString().split('Exception: ')[1]
+            : '게시글 삭제 중 오류 발생: $e',
+      );
+    }
   }
 
   // 게시글 작성 (도메인 로직 호출 및 에러 처리)

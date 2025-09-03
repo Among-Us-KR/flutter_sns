@@ -30,5 +30,9 @@ class DeletePostUseCase {
 
     // 3. 권한 확인 완료 후 삭제 실행
     await _repository.deletePost(postId);
+
+    // 4. 사용자 게시글 수 감소
+    // post.authorId를 사용하여 통계를 업데이트합니다.
+    await _repository.decrementUserPostsCount(post.authorId);
   }
 }
