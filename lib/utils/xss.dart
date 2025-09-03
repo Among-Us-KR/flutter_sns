@@ -15,8 +15,10 @@ class XssFilter {
           .map((line) => line.trim().toLowerCase())
           .where((line) => line.isNotEmpty)
           .toList();
+      // ignore: avoid_print
       print('✅ 금지어 로드 완료: ${_bannedWords.length}개');
     } catch (e) {
+      // ignore: avoid_print
       print('❌ 금지어 로드 실패: $e');
       _bannedWords = [];
     }

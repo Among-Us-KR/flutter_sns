@@ -61,14 +61,23 @@ lib/
 
  ## 전체 실행흐름 
  
- ```
- main.dart 
- → MyApp (in app.dart) 
- → GoRouter 시작 
- → SplashScreen 
- → context.go('/') 
- → HomePage 
- ``` 
+```
+1. SplashScreen
+   └ 로그인 상태 확인 (FirebaseAuth)
+       ├ 로그인 X → LoginPage
+       └ 로그인 O
+           └ DB에 UID 존재 X → LoginPage
+           └ UID 존재 O
+               ├ 닉네임 null → ProfileEditPage
+               └ 닉네임 있음 → HomePage
+
+2. LoginPage (구글 로그인 + 동의 체크)
+   └ 로그인 완료 → DB에 UID 저장 → ProfileEditPage로 이동
+
+3. ProfileEditPage (닉네임/이미지 등록)
+   └ 저장 완료 → HomePage로 이동
+
+```
 
 ## 필수구현 사항
 
@@ -76,13 +85,13 @@ lib/
 
 ### 화면 구성
 
-- [ ] 디자인된 와이어프레임을 보고, 코드로 레이아웃을 나눌 수 있습니다.
-- [ ] 다양한 위젯과 속성을 활용해 UI 를 구성합니다.
-- [ ] Splash 화면에서 애니메이션을 구현할 수 있습니다.
+- [v] 디자인된 와이어프레임을 보고, 코드로 레이아웃을 나눌 수 있습니다.
+- [v] 다양한 위젯과 속성을 활용해 UI 를 구성합니다.
+- [v] Splash 화면에서 애니메이션을 구현할 수 있습니다.
 
 ### 기능 구현
 
-- [ ] `Firebase Firestore`와 연동하여 데이터를 주고받을 수 있습니다.
+- [v] `Firebase Firestore`와 연동하여 데이터를 주고받을 수 있습니다.
 - [ ] `ImagePicker` 패키지와 `Firebase Storage`를 이용하여 사진 업로드 기능을 구현할 수 있습니다.
 - [ ] PageView 에서 `무한스크롤` 기능을 구현할 수 있습니다.
 - [ ] `TF Lite` 패키지와 `YOLO` 모델을 이용하여 사람이 들어간 사진의 업로드를 제한할 수 있습니다.
@@ -90,7 +99,7 @@ lib/
 
 ### 설계
 
-- [ ] 클린 아키텍처로 프로젝트를 설계할 수 있습니다
+- [v] 클린 아키텍처로 프로젝트를 설계할 수 있습니다
 - [ ] 각 단계 별 Mock 클래스를 사용하여 테스트 코드를 작성할 수 있습니다.
 
   
@@ -205,23 +214,23 @@ comments 컬렉션 가지고 올 때 특정 feed에 해당하는 댓글만 가�
     1. Spark 요금제 (무료 플랜)
     이메일/비밀번호, 소셜 로그인 등 대부분의 인증 방식은 무제한 무료입니다.
 
-```
-1. SplashScreen
-   └ 로그인 상태 확인 (FirebaseAuth)
-       ├ 로그인 X → LoginScreen
-       └ 로그인 O
-           └ DB에 UID 존재 X → LoginScreen
-           └ UID 존재 O
-               ├ 닉네임 null → ProfileEditScreen
-               └ 닉네임 있음 → HomePage
 
-2. LoginPage (구글 로그인 + 동의 체크)
-   └ 로그인 완료 → DB에 UID 저장 → ProfileEditPage로 이동
+LoginDetailPage (UI)
+        │
+        ▼
+UploadProvider (upload_provider.dart)
+        │
+        ▼
+UploadImageUseCase (upload_image_usecase.dart)
+        │
+        ▼
+UploadRepositoryImpl (upload_repository_impl.dart)
+        │
+        ▼
+FirebaseStorageDataSource (firebase_storage_datasource.dart)
 
-3. ProfileEditScreen (닉네임/이미지 등록)
-   └ 저장 완료 → HomePage로 이동
-
-```
-login_page.dart
-auth_service.dart
-profile_edit_page.dart
+provider.dart 와 upload_provider.dart 를 가져오니 ChangeNotifierProvider 가 블러처리되어있어
+지금 상황을 보면 flutter_riverpod와 provider를 혼용하고 계셔서 생기는 문제예요.
+	•	flutter_riverpod에서는 ChangeNotifierProvider가 아니라 ChangeNotifierProvider가 Riverpod용이 아님.
+	•	Riverpod에서는 **ChangeNotifierProvider 대신 ChangeNotifierProvider<UploadProvider>**를 flutter_riverpod 패키지에서 가져와야 합니다.
+	•	현재 provider 패키지에서 가져오면 Riverpod ProviderScope 안에서 충돌이 나거나 블러 처리됩니다.
