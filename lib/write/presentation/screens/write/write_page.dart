@@ -1,6 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
 import 'package:flutter_sns/write/core/services/message_service.dart';
+import 'package:flutter_sns/write/domain/entities/write_mode.dart';
+import 'package:flutter_sns/write/presentation/screens/write/write_page_viewmodel.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/bottom_button.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/category_selector.dart';
 import 'package:flutter_sns/write/presentation/screens/write/widgets/content_text_input.dart';
@@ -8,62 +11,34 @@ import 'package:flutter_sns/write/presentation/screens/write/widgets/image_carou
 import 'package:flutter_sns/write/presentation/screens/write/widgets/mode_card.dart';
 import 'package:image_picker/image_picker.dart';
 
-// 파일 최상단에 enum 배치
-enum WriteMode { empathy, punch }
-
-// 상수 정의
 class WritePageConstants {
-  static const int maxImages = 5;
   static const int maxTextLength = 1000;
-  static const double maxImageSizeMB = 5.0;
   static const Duration animationDuration = Duration(milliseconds: 250);
 }
 
-class WritePage extends StatefulWidget {
+class WritePage extends ConsumerStatefulWidget {
   const WritePage({super.key});
 
   @override
-  State<WritePage> createState() => _WritePageState();
+  ConsumerState<WritePage> createState() => _WritePageState();
 }
 
-class _WritePageState extends State<WritePage> {
-  final MessageService _messageService = SnackBarMessageService(); // 추가
+class _WritePageState extends ConsumerState<WritePage> {
+  final MessageService _messageService = SnackBarMessageService();
   final _contentCtrl = TextEditingController();
-  final _picker = ImagePicker();
-
-  // 이미지(최대 5장)
-  final List<XFile> _images = [];
-
-  // TODO: 서버 연동 시 활성화
-  // bool _isUploading = false;
-  // String? _errorMessage;
-
-  final _categories = const [
-    '멍청스',
-    '고민스',
-    '대박스',
-    '행복스',
-    '슬펐스',
-    '빡쳤스',
-    '놀랐스',
-    '솔직스',
-  ];
-  String? _selectedCategory;
-
-  WriteMode? _mode;
-
-  // 강화된 유효성 검사
-  bool get _isValid {
-    final text = _contentCtrl.text.trim();
-    return (_selectedCategory != null) &&
-        text.isNotEmpty &&
-        text.length <= WritePageConstants.maxTextLength &&
-        _mode != null;
-  }
 
   @override
   void initState() {
     super.initState();
+    // 뷰모델의 콘텐츠를 컨트롤러에 바인딩
+    final viewModel = ref.read(writeViewModelProvider);
+    _contentCtrl.text = viewModel.content;
+    _contentCtrl.addListener(() {
+      // 컨트롤러 변경 시 뷰모델에 전달
+      ref
+          .read(writeViewModelProvider.notifier)
+          .updateContent(_contentCtrl.text);
+    });
   }
 
   @override
@@ -72,112 +47,41 @@ class _WritePageState extends State<WritePage> {
     super.dispose();
   }
 
-  // 이미지 크기 검증
-  Future<bool> _validateImageSize(XFile image) async {
-    try {
-      final file = File(image.path);
-      if (!await file.exists()) return false;
-
-      final fileSize = await file.length();
-      final maxSizeBytes = WritePageConstants.maxImageSizeMB * 1024 * 1024;
-
-      if (fileSize > maxSizeBytes) {
-        _messageService.showError(
-          '이미지 크기는 ${WritePageConstants.maxImageSizeMB}MB 이하여야 합니다',
-        );
-        return false;
-      }
-      return true;
-    } catch (e) {
-      _messageService.showError('이미지 파일을 확인할 수 없습니다');
-      return false;
-    }
-  }
-
-  Future<void> _addImages() async {
-    final remain = WritePageConstants.maxImages - _images.length;
-    if (remain <= 0) {
-      _messageService.showError(
-        '최대 ${WritePageConstants.maxImages}장까지만 추가할 수 있습니다',
-      );
-      return;
-    }
-
-    try {
-      final picked = await _picker.pickMultiImage();
-      if (picked.isEmpty) return;
-
-      // 이미지 크기 검증
-      final validImages = <XFile>[];
-      for (final image in picked.take(remain)) {
-        if (await _validateImageSize(image)) {
-          validImages.add(image);
-        }
-      }
-
-      if (validImages.isEmpty) return;
-
-      setState(() {
-        _images.addAll(validImages);
-      });
-    } catch (e) {
-      _messageService.showError('이미지를 불러오는 중 오류가 발생했습니다');
-    }
-  }
-
-  Future<void> _replaceAt(int index) async {
-    try {
-      final x = await _picker.pickImage(source: ImageSource.gallery);
-      if (x == null) return;
-
-      if (await _validateImageSize(x)) {
-        setState(() => _images[index] = x);
-        _messageService.showSuccess('이미지가 교체되었습니다');
-      }
-    } catch (e) {
-      _messageService.showError('이미지 교체 중 오류가 발생했습니다');
-    }
-  }
-
-  void _removeAt(int index) {
-    if (index < 0 || index >= _images.length) return;
-
-    setState(() {
-      _images.removeAt(index);
-    });
-  }
-
-  void _onSubmit() {
-    if (!_isValid) {
-      _messageService.showError('모든 필수 항목을 입력해주세요');
-      return;
-    }
-
-    // TODO: Firebase 업로드 구현
-    // setState(() => _isUploading = true);
-    // try {
-    //   await _uploadToFirebase();
-    //   _showSuccess('게시글이 업로드되었습니다!');
-    //   Navigator.of(context).pop();
-    // } catch (e) {
-    //   _showError('업로드 실패: ${e.toString()}');
-    // } finally {
-    //   if (mounted) setState(() => _isUploading = false);
-    // }
-
-    // 임시: 단순 화면 닫기
-    _messageService.showSuccess('게시글이 작성되었습니다! (임시)');
-    Navigator.of(context).pop();
-  }
-
+  // 빌드 메서드에서 Provider의 상태를 'ref.watch'로 관찰
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final viewModel = ref.watch(writeViewModelProvider);
+    final viewModelNotifier = ref.read(writeViewModelProvider.notifier);
+    final canPost = ref.watch(canPostProvider);
+
+    // 에러/성공 메시지 알림
+    ref.listen<String?>(writeViewModelProvider.select((s) => s.errorMessage), (
+      prev,
+      next,
+    ) {
+      if (next != null) {
+        _messageService.showError(next);
+        viewModelNotifier.clearErrorMessage();
+      }
+    });
+    ref.listen<String?>(
+      writeViewModelProvider.select((s) => s.successMessage),
+      (prev, next) {
+        if (next != null) {
+          _messageService.showSuccess(next);
+          viewModelNotifier.clearSuccessMessage();
+          if (next == '게시글이 성공적으로 작성되었습니다!') {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -192,7 +96,8 @@ class _WritePageState extends State<WritePage> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton(
-              onPressed: _isValid ? _onSubmit : null,
+              // 뷰모델의 상태에 따라 버튼 활성화/비활성화
+              onPressed: canPost ? () => viewModelNotifier.createPost() : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: cs.secondary,
                 foregroundColor: cs.onSecondary,
@@ -214,7 +119,7 @@ class _WritePageState extends State<WritePage> {
       ),
 
       body: GestureDetector(
-        behavior: HitTestBehavior.translucent, // 빈 공간 탭도 인식
+        behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -222,12 +127,16 @@ class _WritePageState extends State<WritePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 이미지 카루셀
+                // 뷰모델의 이미지 리스트를 바인딩
                 ImageCarouselFreeScroll(
-                  images: _images,
-                  onAdd: _addImages,
-                  onReplace: _replaceAt,
-                  onRemove: _removeAt,
+                  images: viewModel.selectedImages,
+                  // 뷰모델의 메서드를 이벤트 콜백으로 전달
+                  onAdd: () => viewModelNotifier.pickImagesFromGallery(),
+                  onReplace: (index) => viewModelNotifier.replaceImage(
+                    index,
+                    ImageSource.gallery,
+                  ),
+                  onRemove: (index) => viewModelNotifier.removeImage(index),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -238,24 +147,24 @@ class _WritePageState extends State<WritePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 카테고리
+                // 뷰모델의 카테고리 상태와 연결
                 CategorySelector(
-                  categories: _categories,
-                  selectedCategory: _selectedCategory,
+                  categories: categories,
+                  selectedCategory: viewModel.selectedCategory,
                   onCategorySelected: (category) =>
-                      setState(() => _selectedCategory = category),
+                      viewModelNotifier.selectCategory(category),
                 ),
                 const SizedBox(height: 24),
 
-                // 내용
+                // 뷰모델의 컨트롤러와 연결
                 ContentTextInput(
                   controller: _contentCtrl,
-                  maxLength: WritePageConstants.maxTextLength,
-                  onChanged: () => setState(() {}),
+                  maxLength: 1000,
+                  onChanged: () {}, // onChanged는 TextEditingController가 처리
                 ),
                 const SizedBox(height: 24),
 
-                // 모드 선택
+                // 모드 선택은 아직 뷰모델에 없으므로, 필요에 따라 추가
                 Text(
                   '모드 선택',
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -269,8 +178,12 @@ class _WritePageState extends State<WritePage> {
                       child: ModeCard(
                         title: '공감해줘',
                         subtitle: '따뜻하고 다정한\n말이 필요할 때',
-                        selected: _mode == WriteMode.empathy,
-                        onTap: () => setState(() => _mode = WriteMode.empathy),
+                        selected:
+                            viewModel.selectedMode ==
+                            WriteMode.empathy, // 뷰모델과 바인딩
+                        onTap: () => viewModelNotifier.selectMode(
+                          WriteMode.empathy,
+                        ), // 뷰모델의 메서드 호출
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -278,13 +191,17 @@ class _WritePageState extends State<WritePage> {
                       child: ModeCard(
                         title: '팩폭해줘',
                         subtitle: '솔직하고 직설적인\n말이 필요할 때',
-                        selected: _mode == WriteMode.punch,
-                        onTap: () => setState(() => _mode = WriteMode.punch),
+                        selected:
+                            viewModel.selectedMode ==
+                            WriteMode.punch, // 뷰모델과 바인딩
+                        onTap: () => viewModelNotifier.selectMode(
+                          WriteMode.punch,
+                        ), // 뷰모델의 메서드 호출
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 120), // 하단 버튼 공간 확보
+                const SizedBox(height: 120),
               ],
             ),
           ),
@@ -293,9 +210,9 @@ class _WritePageState extends State<WritePage> {
 
       // 하단 버튼
       bottomNavigationBar: BottomButtons(
-        isValid: _isValid,
-        onSubmit: _onSubmit,
-        onTempSave: null, // TODO: 임시저장 기능 구현 시 활성화
+        isValid: canPost,
+        onSubmit: () => viewModelNotifier.createPost(),
+        onTempSave: () => viewModelNotifier.saveDraft(),
       ),
     );
   }
