@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
 
 /// 화면 하단에 고정되는 댓글 입력창 위젯
-class CommentInputField extends StatefulWidget {
-  const CommentInputField({super.key});
+class CommentInputField extends ConsumerStatefulWidget {
+  final String postId;
+  const CommentInputField({super.key, required this.postId});
 
   @override
-  State<CommentInputField> createState() => _CommentInputFieldState();
+  ConsumerState<CommentInputField> createState() => _CommentInputFieldState();
 }
 
-class _CommentInputFieldState extends State<CommentInputField> {
+class _CommentInputFieldState extends ConsumerState<CommentInputField> {
   final _textController = TextEditingController();
   bool _canSend = false;
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     _textController.addListener(() {
-      // 위젯이 마운트된 상태인지 확인
       if (!mounted) return;
       setState(() {
-        _canSend = _textController.text.isNotEmpty;
+        _canSend = _textController.text.trim().isNotEmpty;
       });
     });
   }
@@ -31,9 +34,37 @@ class _CommentInputFieldState extends State<CommentInputField> {
     super.dispose();
   }
 
-  void _onSend() {
-    // TODO: 댓글 전송 로직 구현
-    _textController.clear();
+  Future<void> _onSend() async {
+    if (!_canSend || _isSending) return;
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      final content = _textController.text;
+      await ref
+          .read(commentServiceProvider)
+          .addComment(postId: widget.postId, content: content);
+      _textController.clear();
+    } catch (e, s) {
+      // 디버깅을 위해 콘솔에 에러와 스택 트레이스 출력
+      print('댓글 작성 오류: $e\n$s');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('댓글 작성에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    }
   }
 
   @override
@@ -50,39 +81,42 @@ class _CommentInputFieldState extends State<CommentInputField> {
             const CircleAvatar(radius: 16, backgroundColor: AppColors.n100),
             const SizedBox(width: 12),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.n400),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        decoration: const InputDecoration(
-                          fillColor: Colors.transparent,
-                          filled: true,
-                          hintText: '따뜻한 공감 댓글 작성하기',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+              child: TextField(
+                controller: _textController,
+                decoration: InputDecoration(
+                  hintText: '따뜻한 공감 댓글 작성하기',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderSide: const BorderSide(color: AppColors.n400),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: AppColors.n400),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: AppColors.brand),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: _isSending
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          icon: Image.asset(
+                            'assets/icons/send.png',
+                            width: 24,
+                            height: 24,
+                            color: _canSend ? AppColors.brand : AppColors.n600,
+                          ),
+                          onPressed: _onSend,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _canSend ? _onSend : null,
-                      child: Image.asset(
-                        'assets/icons/send.png',
-                        width: 24,
-                        height: 24,
-                        color: _canSend ? AppColors.brand : AppColors.n600,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
