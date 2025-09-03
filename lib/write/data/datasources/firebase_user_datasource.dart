@@ -37,7 +37,7 @@ class FirebaseUserDataSource {
   }
 
   /// 업데이트: 서버시간 + nicknameLower 동기화
-  Future<void> updateUser(UsersModel user) async {
+  Future<void> updateUserProfile(UsersModel user) async {
     final data = user.toJson();
     data['nicknameLower'] = (user.nickname).toLowerCase();
     data['updatedAt'] = FieldValue.serverTimestamp();

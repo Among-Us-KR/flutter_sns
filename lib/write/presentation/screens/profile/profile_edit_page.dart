@@ -1,40 +1,78 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod import
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/core/providers/providers.dart';
+import 'package:flutter_sns/write/presentation/screens/profile/profile_edit_view_model.dart';
+import 'package:image_picker/image_picker.dart';
 
-class ProfileEditPage extends StatefulWidget {
+// StatefulWidget을 ConsumerStatefulWidget으로 변경
+class ProfileEditPage extends ConsumerStatefulWidget {
   const ProfileEditPage({super.key});
 
   @override
-  State<ProfileEditPage> createState() => _ProfileEditPageState();
+  ConsumerState<ProfileEditPage> createState() => _ProfileEditPageState();
 }
 
-class _ProfileEditPageState extends State<ProfileEditPage> {
+// State도 ConsumerState로 변경
+class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   final TextEditingController _nicknameController = TextEditingController();
-  bool _isNicknameDuplicate = false; // TODO: 중복 체크 결과 반영 필요
-  File? _profileImage; // 프로필 이미지 상태
 
-  final ImagePicker _picker = ImagePicker();
+  @override
+  void initState() {
+    super.initState();
+    // 페이지 로드 시, 뷰모델의 현재 닉네임을 컨트롤러에 바인딩
+    final state = ref.read(profileEditViewModelProvider);
+    _nicknameController.text = state.nickname;
+
+    // 컨트롤러의 리스너를 추가하여 텍스트 변경을 뷰모델에 알림
+    _nicknameController.addListener(() {
+      ref
+          .read(profileEditViewModelProvider.notifier)
+          .updateNickname(_nicknameController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _nicknameController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      if (pickedFile != null) {
+        // 선택된 이미지를 뷰모델에 전달합니다.
+        ref
+            .read(profileEditViewModelProvider.notifier)
+            .setProfileImage(File(pickedFile.path));
+      }
+    } catch (e) {
+      // 에러 발생 시 사용자에게 알림
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이미지 선택에 실패했습니다: ${e.toString()}')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 뷰모델의 상태를 watch하여 UI를 업데이트
+    final state = ref.watch(profileEditViewModelProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    if (_nicknameController.text != state.nickname) {
+      _nicknameController.text = state.nickname;
+    }
+    // 폼 유효성 검사를 뷰모델 상태에 따라 결정
     final isFormValid =
         _nicknameController.text.isNotEmpty &&
-        _profileImage != null &&
-        !_isNicknameDuplicate;
+        !state.isNicknameDuplicate &&
+        !state.isSaving;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -56,7 +94,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // 오렌지 보더 원형 아바타
+                  // 프로필 이미지 표시 (뷰모델 상태에 따라 분기)
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -64,19 +102,35 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     ),
                     child: ClipOval(
                       child: SizedBox(
-                        width: 104, // radius 52 * 2
+                        width: 104,
                         height: 104,
-                        child: _profileImage != null
-                            ? Image.file(_profileImage!, fit: BoxFit.cover)
-                            : Image.network(
-                                'https://picsum.photos/200',
+                        child: state.profileImageFile != null
+                            ? Image.file(
+                                state.profileImageFile!,
                                 fit: BoxFit.cover,
-                              ),
+                              )
+                            : (state.profileImageUrl != null &&
+                                      state.profileImageUrl!.isNotEmpty
+                                  ? Image.network(
+                                      state.profileImageUrl!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      // 기존 Image.asset을 Container로 변경
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: cs.surfaceContainerHigh,
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    )),
                       ),
                     ),
                   ),
-
-                  // 카메라 배지 버튼
+                  // 카메라 버튼
                   Positioned(
                     right: -1,
                     bottom: -1,
@@ -102,8 +156,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ),
             ),
             const SizedBox(height: 32),
-
-            // 닉네임 입력
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
@@ -115,7 +167,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       color: AppColors.n600,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: _nicknameController,
                     style: theme.textTheme.headlineLarge?.copyWith(
@@ -137,13 +189,13 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         borderSide: BorderSide(color: AppColors.n900, width: 2),
                       ),
                     ),
-                    onChanged: (_) => setState(() {}),
+                    // onChanged 로직 제거: 리스너가 대신 처리
                   ),
                 ],
               ),
             ),
-
-            if (_isNicknameDuplicate)
+            // 중복 메시지 표시 (뷰모델 상태에 따라)
+            if (state.isNicknameDuplicate)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
@@ -151,10 +203,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                   style: TextStyle(color: cs.error, fontSize: 14),
                 ),
               ),
-
             const Spacer(),
-
-            // 저장 버튼 (닉네임 + 이미지 둘 다 있을 때만 활성)
+            // 저장 버튼
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: SizedBox(
@@ -162,21 +212,29 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: isFormValid
-                      ? () {
-                          // TODO: 저장 로직
-                          Navigator.of(context).pop();
+                      ? () async {
+                          final success = await ref
+                              .read(profileEditViewModelProvider.notifier)
+                              .saveProfile();
+                          if (success && mounted) {
+                            // This line is crucial for refreshing the previous page.
+                            print('DEBUG: 프로필 업데이트 성공! 이제 프로필 탭을 새로고침합니다.');
+                            ref.invalidate(userProfileProvider);
+                            Navigator.of(context).pop();
+                          }
                         }
-                      : null, // 비활성 상태는 자동으로 disabled 처리
+                      : null,
                   style: isFormValid
-                      ? null // 기본 ElevatedButtonTheme 적용
+                      ? null
                       : ElevatedButton.styleFrom(
                           backgroundColor: cs.onSurface.withValues(alpha: 0.12),
-                          foregroundColor: cs.onSurface, // 글자색
+                          foregroundColor: cs.onSurface.withValues(alpha: 0.38),
                         ),
-                  child: const Text('저장하기'),
+                  child: Text(state.isSaving ? '저장 중...' : '저장하기'),
                 ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

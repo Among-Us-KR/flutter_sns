@@ -1,12 +1,14 @@
+// lib/write/presentation/screens/profile/widgets/profile_sliver_app_bar.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/profile_page_view_model.dart';
+import 'package:flutter_sns/write/core/providers/providers.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/profile_collapsed_widget.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/profile_header.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/stats_item.dart';
-import 'package:go_router/go_router.dart';
 
 class ProfileSliverAppBar extends ConsumerWidget {
+  // Use ConsumerWidget
   final VoidCallback onEditPressed;
 
   const ProfileSliverAppBar({super.key, required this.onEditPressed});
@@ -21,6 +23,9 @@ class ProfileSliverAppBar extends ConsumerWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final appBarH = kToolbarHeight + topPad;
 
+    // 이 부분이 핵심입니다. userProfileProvider를 watch합니다.
+    final userProfileAsync = ref.watch(userProfileProvider);
+
     return SliverAppBar(
       pinned: true,
       elevation: 0,
@@ -29,39 +34,44 @@ class ProfileSliverAppBar extends ConsumerWidget {
           appBarH +
           ProfileSliverAppBar._headerHeight +
           (ProfileSliverAppBar._statsOverflow * 0.4),
-      flexibleSpace: LayoutBuilder(
-        builder: (context, constraints) {
-          final minH = appBarH;
-          final maxH =
-              appBarH +
-              ProfileSliverAppBar._headerHeight +
-              (ProfileSliverAppBar._statsOverflow * 0.4);
-          final h = constraints.maxHeight.clamp(minH, maxH);
-          final t = ((h - minH) / (maxH - minH)).clamp(0.0, 1.0);
+      flexibleSpace: userProfileAsync.when(
+        data: (user) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final minH = appBarH;
+              final maxH =
+                  appBarH +
+                  ProfileSliverAppBar._headerHeight +
+                  (ProfileSliverAppBar._statsOverflow * 0.4);
+              final h = constraints.maxHeight.clamp(minH, maxH);
+              final t = ((h - minH) / (maxH - minH)).clamp(0.0, 1.0);
 
-          // 간단한 분기: 0.5를 기준으로 완전히 다른 UI 표시
-          if (t > 0.5) {
-            // 펼쳐진 상태
-            return _buildExpandedState(
-              context,
-              theme,
-              cs,
-              topPad,
-              appBarH,
-              ref,
-            );
-          } else {
-            // 접힌 상태
-            return _buildCollapsedState(
-              context,
-              theme,
-              cs,
-              topPad,
-              appBarH,
-              ref,
-            );
-          }
+              if (t > 0.5) {
+                return _buildExpandedState(
+                  context,
+                  theme,
+                  cs,
+                  topPad,
+                  appBarH,
+                  ref,
+                  user, // userProfile 객체를 전달
+                );
+              } else {
+                return _buildCollapsedState(
+                  context,
+                  theme,
+                  cs,
+                  topPad,
+                  appBarH,
+                  ref,
+                  user, // userProfile 객체를 전달
+                );
+              }
+            },
+          );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('프로필 정보를 불러오지 못했습니다: $e')),
       ),
     );
   }
@@ -73,14 +83,10 @@ class ProfileSliverAppBar extends ConsumerWidget {
     double topPad,
     double appBarH,
     WidgetRef ref,
+    user, // user 객체 받기
   ) {
-    final profileState = ref.watch(
-      profileViewModelProvider(null),
-    ); // 현재 사용자 프로필
-
     return Column(
       children: [
-        // 상단 AppBar
         Container(
           height: appBarH,
           color: cs.surface,
@@ -90,10 +96,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
             children: [
               Text('프로필', style: theme.textTheme.headlineLarge),
               ElevatedButton(
-                onPressed: () {
-                  print('펼친 상태 수정 버튼 클릭됨');
-                  context.pushNamed('profile_edit');
-                },
+                onPressed: onEditPressed, // onEditPressed 사용
                 style: ElevatedButton.styleFrom(
                   backgroundColor: cs.secondary,
                   foregroundColor: cs.onSecondary,
@@ -113,7 +116,6 @@ class ProfileSliverAppBar extends ConsumerWidget {
             ],
           ),
         ),
-        // 프로필 헤더 + 통계
         SizedBox(
           height:
               ProfileSliverAppBar._headerHeight +
@@ -126,7 +128,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
                 height: ProfileSliverAppBar._headerHeight,
                 color: cs.secondary,
                 padding: const EdgeInsets.symmetric(vertical: 32),
-                child: const ProfileHeader(),
+                child: ProfileHeader(user: user), // user 객체 전달
               ),
               Positioned(
                 top:
@@ -139,44 +141,30 @@ class ProfileSliverAppBar extends ConsumerWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: profileState.user != null
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: StatsItem(
-                                count: profileState.user!.stats.postsCount,
-                                label: '던진 글',
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: StatsItem(
-                                count: profileState.user!.stats.empathyReceived,
-                                label: '받은 공감',
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: StatsItem(
-                                count: profileState.user!.stats.punchReceived,
-                                label: '받은 팩폭',
-                              ),
-                            ),
-                          ],
-                        )
-                      : const Row(
-                          children: [
-                            Expanded(child: StatsItem(count: 0, label: '던진 글')),
-                            SizedBox(width: 7),
-                            Expanded(
-                              child: StatsItem(count: 0, label: '받은 공감'),
-                            ),
-                            SizedBox(width: 7),
-                            Expanded(
-                              child: StatsItem(count: 0, label: '받은 팩폭'),
-                            ),
-                          ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: StatsItem(
+                          count: user.stats.postsCount,
+                          label: '던진 글',
                         ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: StatsItem(
+                          count: user.stats.empathyReceived,
+                          label: '받은 공감',
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: StatsItem(
+                          count: user.stats.punchReceived,
+                          label: '받은 팩폭',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -193,8 +181,8 @@ class ProfileSliverAppBar extends ConsumerWidget {
     double topPad,
     double appBarH,
     WidgetRef ref,
+    user, // user 객체 받기
   ) {
-    final profileState = ref.watch(profileViewModelProvider(null));
     return Container(
       height: appBarH,
       color: cs.surface,
@@ -202,7 +190,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const CollapsedAvatar(imageUrl: null),
+          CollapsedAvatar(imageUrl: user.profileImageUrl), // 이미지 URL 전달
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -210,7 +198,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profileState.user?.nickname ?? '로딩중...',
+                  user.nickname, // 닉네임 사용
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -218,46 +206,33 @@ class ProfileSliverAppBar extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                profileState.user != null
-                    ? Row(
-                        children: [
-                          StatInline(
-                            theme: theme,
-                            label: '글',
-                            value: profileState.user!.stats.postsCount,
-                          ),
-                          const StatDot(),
-                          StatInline(
-                            theme: theme,
-                            label: '받은 공감',
-                            value: profileState.user!.stats.empathyReceived,
-                          ),
-                          const StatDot(),
-                          StatInline(
-                            theme: theme,
-                            label: '받은 팩폭',
-                            value: profileState.user!.stats.punchReceived,
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          StatInline(theme: theme, label: '글', value: 0),
-                          const StatDot(),
-                          StatInline(theme: theme, label: '받은 공감', value: 0),
-                          const StatDot(),
-                          StatInline(theme: theme, label: '받은 팩폭', value: 0),
-                        ],
-                      ),
+                Row(
+                  children: [
+                    StatInline(
+                      theme: theme,
+                      label: '글',
+                      value: user.stats.postsCount,
+                    ),
+                    const StatDot(),
+                    StatInline(
+                      theme: theme,
+                      label: '받은 공감',
+                      value: user.stats.empathyReceived,
+                    ),
+                    const StatDot(),
+                    StatInline(
+                      theme: theme,
+                      label: '받은 팩폭',
+                      value: user.stats.punchReceived,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: () {
-              print('접힌 상태 수정 버튼 클릭됨');
-              context.pushNamed('profile_edit');
-            },
+            onPressed: onEditPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.secondary,
               foregroundColor: cs.onSecondary,

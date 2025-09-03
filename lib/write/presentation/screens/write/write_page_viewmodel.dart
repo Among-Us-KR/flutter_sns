@@ -8,19 +8,6 @@ import 'package:flutter_sns/write/domain/usecases/post_usecase/get_post_usecase.
 import 'package:flutter_sns/write/domain/usecases/post_usecase/update_post_usecase.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_sns/write/domain/entities/category.dart';
-
-// categories 리스트를 WriteState 클래스 바깥으로 이동
-const categories = <String>[
-  '멍청스',
-  '고민스',
-  '대박스',
-  '행복스',
-  '슬펐스',
-  '빡쳤스',
-  '놀랐스',
-  '솔직스',
-];
 
 // 상태 클래스
 class WriteState {
