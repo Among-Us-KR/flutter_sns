@@ -234,3 +234,5 @@ provider.dart 와 upload_provider.dart 를 가져오니 ChangeNotifierProvider �
 	•	flutter_riverpod에서는 ChangeNotifierProvider가 아니라 ChangeNotifierProvider가 Riverpod용이 아님.
 	•	Riverpod에서는 **ChangeNotifierProvider 대신 ChangeNotifierProvider<UploadProvider>**를 flutter_riverpod 패키지에서 가져와야 합니다.
 	•	현재 provider 패키지에서 가져오면 Riverpod ProviderScope 안에서 충돌이 나거나 블러 처리됩니다.
+
+

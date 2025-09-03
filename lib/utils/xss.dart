@@ -1,5 +1,4 @@
 // xss.dart
-import 'dart:convert';
 import 'package:flutter/services.dart';
 
 /// XSS 및 악성 입력 필터 유틸리티
@@ -11,12 +10,17 @@ class XssFilter {
   static Future<void> loadBannedWordsFromCSV() async {
     try {
       final csvString = await rootBundle.loadString('assets/banned_words/slang.csv');
-      _bannedWords = LineSplitter.split(csvString)
-          .map((line) => line.trim().toLowerCase())
+      _bannedWords = csvString
+          .split(',')
+          .map((line) => line.trim().replaceAll('"', '').toLowerCase())
           .where((line) => line.isNotEmpty)
           .toList();
       // ignore: avoid_print
       print('✅ 금지어 로드 완료: ${_bannedWords.length}개');
+    //      // 전체 리스트 출력 (디버깅용)
+    // for (var i = 0; i < _bannedWords.length; i++) {
+    //   print('[$i] ${_bannedWords[i]}');
+    // }
     } catch (e) {
       // ignore: avoid_print
       print('❌ 금지어 로드 실패: $e');
