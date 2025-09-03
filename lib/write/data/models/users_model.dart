@@ -127,19 +127,36 @@ class PrivacyConsent {
 class UserStats {
   final int postsCount;
   final int commentsCount;
-  final int likesReceived;
+  final int empathyReceived; // 추가된 필드
+  final int punchReceived; // 추가된 필드
 
   UserStats({
     required this.postsCount,
     required this.commentsCount,
-    required this.likesReceived,
+    required this.empathyReceived, // 생성자 업데이트
+    required this.punchReceived, // 생성자 업데이트
   });
+
+  UserStats copyWith({
+    int? postsCount,
+    int? commentsCount,
+    int? empathyReceived,
+    int? punchReceived,
+  }) {
+    return UserStats(
+      postsCount: postsCount ?? this.postsCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      empathyReceived: empathyReceived ?? this.empathyReceived,
+      punchReceived: punchReceived ?? this.punchReceived,
+    );
+  }
 
   factory UserStats.fromJson(Map<String, dynamic> json) {
     return UserStats(
       postsCount: json['postsCount'] ?? 0,
       commentsCount: json['commentsCount'] ?? 0,
-      likesReceived: json['likesReceived'] ?? 0,
+      empathyReceived: json['empathyReceived'] ?? 0, // fromJson 업데이트
+      punchReceived: json['punchReceived'] ?? 0, // fromJson 업데이트
     );
   }
 
@@ -147,7 +164,8 @@ class UserStats {
     return {
       'postsCount': postsCount,
       'commentsCount': commentsCount,
-      'likesReceived': likesReceived,
+      'empathyReceived': empathyReceived, // toJson 업데이트
+      'punchReceived': punchReceived, // toJson 업데이트
     };
   }
 
@@ -156,7 +174,8 @@ class UserStats {
     return UserStats(
       postsCount: postsCount + increment,
       commentsCount: commentsCount,
-      likesReceived: likesReceived,
+      empathyReceived: empathyReceived,
+      punchReceived: punchReceived,
     );
   }
 
@@ -164,15 +183,27 @@ class UserStats {
     return UserStats(
       postsCount: postsCount,
       commentsCount: commentsCount + increment,
-      likesReceived: likesReceived,
+      empathyReceived: empathyReceived,
+      punchReceived: punchReceived,
     );
   }
 
-  UserStats updateLikesReceived(int increment) {
+  // 기존 updateLikesReceived는 공감/팩폭으로 분리해야 함
+  UserStats updateEmpathyReceived(int increment) {
     return UserStats(
       postsCount: postsCount,
       commentsCount: commentsCount,
-      likesReceived: likesReceived + increment,
+      empathyReceived: empathyReceived + increment,
+      punchReceived: punchReceived,
+    );
+  }
+
+  UserStats updatePunchReceived(int increment) {
+    return UserStats(
+      postsCount: postsCount,
+      commentsCount: commentsCount,
+      empathyReceived: empathyReceived,
+      punchReceived: punchReceived + increment,
     );
   }
 }

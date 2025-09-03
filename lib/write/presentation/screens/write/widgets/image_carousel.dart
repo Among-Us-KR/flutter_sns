@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 // 상수 정의
 class ImageCarouselConstants {
@@ -10,7 +9,7 @@ class ImageCarouselConstants {
 
 /// 페이지 스냅 없이 좌우로 자유 스크롤하는 카루셀
 class ImageCarouselFreeScroll extends StatelessWidget {
-  final List<XFile> images;
+  final List<File> images;
   final VoidCallback onAdd;
   final Function(int) onReplace;
   final Function(int) onRemove;
@@ -103,7 +102,8 @@ class ImageCarouselFreeScroll extends StatelessWidget {
 
 // 이미지 카드
 class SafeImageCard extends StatelessWidget {
-  final XFile image;
+  // 매개변수 타입을 XFile에서 File로 변경
+  final File image;
   final String indexLabel; // "n/total"
   final VoidCallback onReplace;
   final VoidCallback onRemove;
@@ -135,7 +135,8 @@ class SafeImageCard extends StatelessWidget {
               return GestureDetector(
                 onTap: onReplace,
                 child: Image.file(
-                  File(image.path),
+                  // image 객체를 직접 사용
+                  image,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return _buildErrorPlaceholder(context);
@@ -178,8 +179,8 @@ class SafeImageCard extends StatelessWidget {
 
   Future<bool> _checkFileExists() async {
     try {
-      final file = File(image.path);
-      return await file.exists();
+      // image 객체를 직접 사용
+      return await image.exists();
     } catch (_) {
       return false;
     }
