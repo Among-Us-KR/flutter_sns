@@ -9,7 +9,8 @@ class ImageCarouselConstants {
 
 /// 페이지 스냅 없이 좌우로 자유 스크롤하는 카루셀
 class ImageCarouselFreeScroll extends StatelessWidget {
-  final List<File> images;
+  // ✅ List<File> 대신 List<dynamic>으로 변경하여 String도 받을 수 있도록 합니다.
+  final List<dynamic> images;
   final VoidCallback onAdd;
   final Function(int) onReplace;
   final Function(int) onRemove;
@@ -32,8 +33,7 @@ class ImageCarouselFreeScroll extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 카드 폭
-        final cardW = (constraints.maxWidth - 2) * 0.7; // 꽉 채우고 싶으면 -2 대신 0
+        final cardW = (constraints.maxWidth - 2) * 0.7;
         final cardH = cardW * _aspect;
 
         final hasAdd = images.length < ImageCarouselConstants.maxImages;
@@ -42,7 +42,6 @@ class ImageCarouselFreeScroll extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 제목: "사진 n/5"
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
@@ -63,7 +62,6 @@ class ImageCarouselFreeScroll extends StatelessWidget {
                 itemCount: itemCount,
                 separatorBuilder: (_, __) => const SizedBox(width: _gap),
                 itemBuilder: (context, i) {
-                  // 마지막에 "추가" 타일
                   if (hasAdd && i == images.length) {
                     return SizedBox(
                       width: cardW,
@@ -75,16 +73,16 @@ class ImageCarouselFreeScroll extends StatelessWidget {
                     );
                   }
 
-                  // 실제 이미지 카드
+                  // ✅ SafeImageCard를 사용하여 이미지 타입에 따라 다르게 처리합니다.
                   return SizedBox(
                     width: cardW,
                     height: cardH,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: SafeImageCard(
-                        key: ValueKey(images[i].path),
+                        // ✅ image 객체를 직접 전달합니다.
                         image: images[i],
-                        indexLabel: '${i + 1}/${images.length}', // 좌상단 순번
+                        indexLabel: '${i + 1}/${images.length}',
                         onReplace: () => onReplace(i),
                         onRemove: () => onRemove(i),
                       ),
@@ -100,11 +98,10 @@ class ImageCarouselFreeScroll extends StatelessWidget {
   }
 }
 
-// 이미지 카드
+// ✅ SafeImageCard 위젯의 image 매개변수 타입을 dynamic으로 변경합니다.
 class SafeImageCard extends StatelessWidget {
-  // 매개변수 타입을 XFile에서 File로 변경
-  final File image;
-  final String indexLabel; // "n/total"
+  final dynamic image;
+  final String indexLabel;
   final VoidCallback onReplace;
   final VoidCallback onRemove;
 
@@ -122,28 +119,29 @@ class SafeImageCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 안전한 이미지 로딩
-          FutureBuilder<bool>(
-            future: _checkFileExists(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError || (snapshot.hasData && !snapshot.data!)) {
-                return _buildErrorPlaceholder(context);
-              }
-              if (!snapshot.hasData) {
-                return _buildLoadingPlaceholder(context);
-              }
-              return GestureDetector(
-                onTap: onReplace,
-                child: Image.file(
-                  // image 객체를 직접 사용
-                  image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildErrorPlaceholder(context);
-                  },
-                ),
-              );
-            },
+          // ✅ FutureBuilder를 제거하고 즉시 이미지 위젯을 사용합니다.
+          // 타입에 따라 다른 로더를 사용합니다.
+          GestureDetector(
+            onTap: onReplace,
+            child: image is File
+                ? Image.file(
+                    image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildErrorPlaceholder(context);
+                    },
+                  )
+                : Image.network(
+                    image,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildLoadingPlaceholder(context);
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildErrorPlaceholder(context);
+                    },
+                  ),
           ),
 
           // 좌측 상단 순번 배지
@@ -177,15 +175,8 @@ class SafeImageCard extends StatelessWidget {
     );
   }
 
-  Future<bool> _checkFileExists() async {
-    try {
-      // image 객체를 직접 사용
-      return await image.exists();
-    } catch (_) {
-      return false;
-    }
-  }
-
+  // ✅ _checkFileExists 메서드는 더 이상 필요하지 않습니다.
+  // ✅ NetworkImage 로딩을 위해 _buildLoadingPlaceholder를 사용합니다.
   Widget _buildErrorPlaceholder(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
@@ -220,7 +211,6 @@ class SafeImageCard extends StatelessWidget {
 // 이미지 추가 타일
 class ImageAddTile extends StatelessWidget {
   final VoidCallback onTap;
-
   const ImageAddTile({super.key, required this.onTap});
 
   @override

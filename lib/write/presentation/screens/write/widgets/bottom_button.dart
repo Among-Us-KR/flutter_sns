@@ -5,12 +5,14 @@ class BottomButtons extends StatelessWidget {
   final bool isValid; // [던지기] 활성 여부
   final VoidCallback onSubmit; // [던지기] 콜백
   final VoidCallback? onTempSave; // [임시저장] 콜백(없으면 비활성)
+  final bool isEditMode;
 
   const BottomButtons({
     super.key,
     required this.isValid,
     required this.onSubmit,
     this.onTempSave,
+    this.isEditMode = false,
   });
 
   @override
@@ -44,51 +46,50 @@ class BottomButtons extends StatelessWidget {
               Row(
                 children: [
                   // -----------------------
-                  // 임시저장 버튼
-                  // - 활성: 거의 검정 배경 + 흰 텍스트
-                  // - 비활성: 회색 배경(0.12) + 회색 텍스트(0.38)
+                  // ✅ 수정 모드가 아닐 때만 임시저장 버튼 표시
                   // -----------------------
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onTempSave,
-                      style: ButtonStyle(
-                        minimumSize: WidgetStateProperty.all(
-                          const Size.fromHeight(56),
-                        ),
-                        elevation: WidgetStateProperty.all(0),
-                        shape: WidgetStateProperty.all(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                  if (!isEditMode)
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: onTempSave,
+                        style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all(
+                            const Size.fromHeight(56),
                           ),
+                          elevation: WidgetStateProperty.all(0),
+                          shape: WidgetStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          textStyle: WidgetStateProperty.all(semibold),
+                          backgroundColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            if (states.contains(WidgetState.disabled)) {
+                              return cs.onSurface.withValues(alpha: 0.12);
+                            }
+                            return cs.onSurface;
+                          }),
+                          foregroundColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            if (states.contains(WidgetState.disabled)) {
+                              return cs.onSurface.withValues(alpha: 0.38);
+                            }
+                            return Colors.white;
+                          }),
                         ),
-                        textStyle: WidgetStateProperty.all(semibold),
-                        backgroundColor: WidgetStateProperty.resolveWith((
-                          states,
-                        ) {
-                          if (states.contains(WidgetState.disabled)) {
-                            return cs.onSurface.withValues(alpha: 0.12);
-                          }
-                          // 활성 시 거의 검정 느낌
-                          return cs.onSurface; // 필요하면 withValues(alpha: 0.9)
-                        }),
-                        foregroundColor: WidgetStateProperty.resolveWith((
-                          states,
-                        ) {
-                          if (states.contains(WidgetState.disabled)) {
-                            return cs.onSurface.withValues(alpha: 0.38);
-                          }
-                          return Colors.white; // 활성 시 흰 텍스트
-                        }),
+                        child: const Text('임시저장'),
                       ),
-                      child: const Text('임시저장'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
+                  // -----------------------
+                  // ✅ 수정 모드가 아닐 때만 SizedBox 표시
+                  // -----------------------
+                  if (!isEditMode) const SizedBox(width: 16),
 
                   // -----------------------
-                  // 던지기 버튼 (FilledButton)
-                  // - 활성: primary 배경 + onPrimary(흰) 텍스트
-                  // - 비활성: 회색 배경(0.12) + 회색 텍스트(0.38)
+                  // ✅ [던지기] 버튼 텍스트 동적 변경
                   // -----------------------
                   Expanded(
                     child: FilledButton(
@@ -117,10 +118,11 @@ class BottomButtons extends StatelessWidget {
                           if (states.contains(WidgetState.disabled)) {
                             return cs.onSurface.withValues(alpha: 0.38);
                           }
-                          return cs.onPrimary; // 활성 시 흰 텍스트
+                          return cs.onPrimary;
                         }),
                       ),
-                      child: const Text('던지기'),
+                      // ✅ 텍스트 변경: 수정 모드면 '수정하기', 아니면 '던지기'
+                      child: Text(isEditMode ? '수정하기' : '던지기'),
                     ),
                   ),
                 ],

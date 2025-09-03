@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// 유저 정보 DTO
 class UsersModel {
   final String uid;
   final String email;
@@ -26,8 +25,13 @@ class UsersModel {
     required this.reportCount,
   });
 
-  // JSON에서 User 객체 생성
   factory UsersModel.fromJson(Map<String, dynamic> json) {
+    DateTime _toDate(dynamic v) {
+      if (v is Timestamp) return v.toDate();
+      if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+      return DateTime.now();
+    }
+
     return UsersModel(
       uid: json['uid'] ?? '',
       email: json['email'] ?? '',
@@ -36,17 +40,12 @@ class UsersModel {
       privacyConsent: PrivacyConsent.fromJson(json['privacyConsent'] ?? {}),
       stats: UserStats.fromJson(json['stats'] ?? {}),
       pushNotifications: json['pushNotifications'] ?? true,
-      createdAt: json['createdAt'] is Timestamp
-          ? (json['createdAt'] as Timestamp).toDate()
-          : DateTime.parse(json['createdAt']),
-      updatedAt: json['updatedAt'] is Timestamp
-          ? (json['updatedAt'] as Timestamp).toDate()
-          : DateTime.parse(json['updatedAt']),
+      createdAt: _toDate(json['createdAt']),
+      updatedAt: _toDate(json['updatedAt']),
       reportCount: json['reportCount'] ?? 0,
     );
   }
 
-  // User 객체를 JSON Map으로 변환
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
@@ -56,13 +55,13 @@ class UsersModel {
       'privacyConsent': privacyConsent.toJson(),
       'stats': stats.toJson(),
       'pushNotifications': pushNotifications,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      // createdAt/updatedAt는 datasource에서 serverTimestamp로 세팅
       'reportCount': reportCount,
+      // 닉네임 중복검색용(소문자)
+      'nicknameLower': nickname.toLowerCase(),
     };
   }
 
-  // User 객체 복사 (일부 필드 수정)
   UsersModel copyWith({
     String? uid,
     String? email,
@@ -90,7 +89,6 @@ class UsersModel {
   }
 }
 
-// 개인정보 동의 클래스
 class PrivacyConsent {
   final DateTime agreedAt;
   final String version;
@@ -103,12 +101,14 @@ class PrivacyConsent {
   });
 
   factory PrivacyConsent.fromJson(Map<String, dynamic> json) {
+    DateTime _toDate(dynamic v) {
+      if (v is Timestamp) return v.toDate();
+      if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+      return DateTime.now();
+    }
+
     return PrivacyConsent(
-      agreedAt: json['agreedAt'] is Timestamp
-          ? (json['agreedAt'] as Timestamp).toDate()
-          : DateTime.parse(
-              json['agreedAt'] ?? DateTime.now().toIso8601String(),
-            ),
+      agreedAt: _toDate(json['agreedAt']),
       version: json['version'] ?? '1.0',
       ipAddress: json['ipAddress'] ?? '',
     );
@@ -123,19 +123,36 @@ class PrivacyConsent {
   }
 }
 
-// 사용자 통계 클래스
 class UserStats {
   final int postsCount;
   final int commentsCount;
-  final int empathyReceived; // 추가된 필드
-  final int punchReceived; // 추가된 필드
+  final int empathyReceived;
+  final int punchReceived;
 
   UserStats({
     required this.postsCount,
     required this.commentsCount,
-    required this.empathyReceived, // 생성자 업데이트
-    required this.punchReceived, // 생성자 업데이트
+    required this.empathyReceived,
+    required this.punchReceived,
   });
+
+  factory UserStats.fromJson(Map<String, dynamic> json) {
+    return UserStats(
+      postsCount: json['postsCount'] ?? 0,
+      commentsCount: json['commentsCount'] ?? 0,
+      empathyReceived: json['empathyReceived'] ?? 0,
+      punchReceived: json['punchReceived'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'postsCount': postsCount,
+      'commentsCount': commentsCount,
+      'empathyReceived': empathyReceived,
+      'punchReceived': punchReceived,
+    };
+  }
 
   UserStats copyWith({
     int? postsCount,
@@ -148,62 +165,6 @@ class UserStats {
       commentsCount: commentsCount ?? this.commentsCount,
       empathyReceived: empathyReceived ?? this.empathyReceived,
       punchReceived: punchReceived ?? this.punchReceived,
-    );
-  }
-
-  factory UserStats.fromJson(Map<String, dynamic> json) {
-    return UserStats(
-      postsCount: json['postsCount'] ?? 0,
-      commentsCount: json['commentsCount'] ?? 0,
-      empathyReceived: json['empathyReceived'] ?? 0, // fromJson 업데이트
-      punchReceived: json['punchReceived'] ?? 0, // fromJson 업데이트
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'postsCount': postsCount,
-      'commentsCount': commentsCount,
-      'empathyReceived': empathyReceived, // toJson 업데이트
-      'punchReceived': punchReceived, // toJson 업데이트
-    };
-  }
-
-  // 통계 업데이트 메서드
-  UserStats updatePostsCount(int increment) {
-    return UserStats(
-      postsCount: postsCount + increment,
-      commentsCount: commentsCount,
-      empathyReceived: empathyReceived,
-      punchReceived: punchReceived,
-    );
-  }
-
-  UserStats updateCommentsCount(int increment) {
-    return UserStats(
-      postsCount: postsCount,
-      commentsCount: commentsCount + increment,
-      empathyReceived: empathyReceived,
-      punchReceived: punchReceived,
-    );
-  }
-
-  // 기존 updateLikesReceived는 공감/팩폭으로 분리해야 함
-  UserStats updateEmpathyReceived(int increment) {
-    return UserStats(
-      postsCount: postsCount,
-      commentsCount: commentsCount,
-      empathyReceived: empathyReceived + increment,
-      punchReceived: punchReceived,
-    );
-  }
-
-  UserStats updatePunchReceived(int increment) {
-    return UserStats(
-      postsCount: postsCount,
-      commentsCount: commentsCount,
-      empathyReceived: empathyReceived,
-      punchReceived: punchReceived + increment,
     );
   }
 }
