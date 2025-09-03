@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
+import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_service.dart';
 
 /// 화면 하단에 고정되는 댓글 입력창 위젯
 class CommentInputField extends ConsumerStatefulWidget {

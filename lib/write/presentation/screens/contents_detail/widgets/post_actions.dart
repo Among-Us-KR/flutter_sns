@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
+import 'package:flutter_sns/write/presentation/providers/post_interaction_providers.dart';
 
 class PostActions extends ConsumerWidget {
   final String postId;
   final int likeCount;
-  final int commentCount;
 
-  const PostActions({
-    super.key,
-    required this.postId,
-    required this.likeCount,
-    required this.commentCount,
-  });
+  const PostActions({super.key, required this.postId, required this.likeCount});
 
   void _toggleLike(WidgetRef ref) {
     ref.read(postInteractionServiceProvider).toggleLike(postId: postId);
@@ -24,6 +18,7 @@ class PostActions extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final isLikedAsyncValue = ref.watch(isPostLikedProvider(postId));
     final likeCountAsyncValue = ref.watch(postLikesCountProvider(postId));
+    final commentsCountAsync = ref.watch(commentsCountProvider(postId));
 
     return Row(
       children: [
@@ -68,9 +63,16 @@ class PostActions extends ConsumerWidget {
           color: AppColors.n600,
         ),
         const SizedBox(width: 4),
-        Text(
-          '$commentCount',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.n600),
+        commentsCountAsync.when(
+          data: (count) => Text(
+            '$count',
+            style: textTheme.bodySmall?.copyWith(color: AppColors.n600),
+          ),
+          loading: () => Text(
+            '...',
+            style: textTheme.bodySmall?.copyWith(color: AppColors.n600),
+          ),
+          error: (err, stack) => const Icon(Icons.error_outline, size: 14),
         ),
       ],
     );
