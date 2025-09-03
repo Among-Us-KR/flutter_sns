@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_sns/write/presentation/widgets/image_page_view.dart';
+import 'package:flutter_sns/write/presentation/screens/contents_detail/contents_detail_page.dart';
 
 class PostView extends StatelessWidget {
   final Posts post;
@@ -14,7 +17,7 @@ class PostView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _PostImages(imagePaths: post.images),
+        ImagePageView(imagePaths: post.images),
         // 이미지 위에 UI를 올리기 위한 그래디언트 오버레이
         // IgnorePointer를 사용하여 이 위젯이 터치 이벤트를 가로채지 않도록 함
         IgnorePointer(
@@ -36,7 +39,10 @@ class PostView extends StatelessWidget {
         Positioned(
           right: 16,
           bottom: 160,
-          child: _LikeButton(initialLikeCount: post.stats.likesCount),
+          child: _LikeButton(
+            postId: post.id,
+            initialLikeCount: post.stats.likesCount,
+          ),
         ),
         Positioned(
           left: 0,
@@ -57,134 +63,56 @@ class PostView extends StatelessWidget {
 
 // --- PostItem 내부에서만 사용하는 위젯들 (Private Widgets) ---
 
-// 여러 이미지를 좌우로 스와이프하여 보여주는 위젯
-class _PostImages extends StatefulWidget {
-  final List<String> imagePaths;
-  const _PostImages({required this.imagePaths});
-
-  @override
-  State<_PostImages> createState() => _PostImagesState();
-}
-
-class _PostImagesState extends State<_PostImages> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool hasMultipleImages = widget.imagePaths.length > 1;
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        PageView.builder(
-          controller: _pageController,
-          // 이미지가 1개일 때는 스크롤되지 않도록 설정
-          physics: hasMultipleImages
-              ? const PageScrollPhysics()
-              : const NeverScrollableScrollPhysics(),
-          onPageChanged: (page) {
-            setState(() {
-              _currentPage = page;
-            });
-          },
-          itemCount: widget.imagePaths.length,
-          itemBuilder: (context, index) {
-            // Firestore에서 가져온 네트워크 이미지 URL을 표시하도록 변경
-            return Image.network(
-              widget.imagePaths[index],
-              fit: BoxFit.cover,
-              // 로딩 중일 때 보여줄 위젯 (선택 사항)
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(child: CircularProgressIndicator());
-              },
-              // 이미지를 불러오지 못했을 때를 대비한 에러 위젯
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Icon(Icons.error, color: Colors.red),
-                );
-              },
-            );
-          },
-        ),
-        // 이미지가 여러 장일 때만 인디케이터 표시
-        if (hasMultipleImages)
-          Positioned(
-            top: 16.0,
-            right: 16.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 4.0,
-                horizontal: 8.0,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Text(
-                '${_currentPage + 1}/${widget.imagePaths.length}',
-                style: AppTypography.caption(Colors.white),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 // 좋아요 버튼 위젯
-class _LikeButton extends StatefulWidget {
+class _LikeButton extends ConsumerWidget {
+  final String postId;
   final int initialLikeCount;
-  const _LikeButton({required this.initialLikeCount});
+  const _LikeButton({required this.postId, required this.initialLikeCount});
 
-  @override
-  State<_LikeButton> createState() => _LikeButtonState();
-}
-
-class _LikeButtonState extends State<_LikeButton> {
-  bool _isLiked = false;
-  late int _likeCount;
-
-  @override
-  void initState() {
-    super.initState();
-    _likeCount = widget.initialLikeCount;
-  }
-
-  void _toggleLike() {
-    // TODO: Provider/UseCase와 연동하여 서버에 좋아요 상태 업데이트
-    setState(() {
-      _isLiked = !_isLiked;
-      _isLiked ? _likeCount++ : _likeCount--;
-    });
+  void _toggleLike(WidgetRef ref) {
+    ref.read(postInteractionServiceProvider).toggleLike(postId: postId);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final isLikedAsyncValue = ref.watch(isPostLikedProvider(postId));
+    final likeCountAsyncValue = ref.watch(postLikesCountProvider(postId));
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Image.asset(
-            _isLiked
-                ? 'assets/icons/heart_white.png'
-                : 'assets/icons/heart_white_empty.png',
-            width: 32,
-            height: 32,
+          icon: isLikedAsyncValue.when(
+            data: (isLiked) => Image.asset(
+              isLiked
+                  ? 'assets/icons/heart_white.png'
+                  : 'assets/icons/heart_white_empty.png',
+              width: 32,
+              height: 32,
+            ),
+            loading: () => Image.asset(
+              'assets/icons/heart_white_empty.png',
+              width: 32,
+              height: 32,
+            ),
+            error: (err, stack) => const Icon(Icons.error, color: Colors.white),
           ),
-          onPressed: _toggleLike,
+          onPressed: () => _toggleLike(ref),
         ),
-        Text(
-          '$_likeCount',
-          style: textTheme.labelLarge?.copyWith(color: Colors.white),
+        likeCountAsyncValue.when(
+          data: (count) => Text(
+            '$count',
+            style: textTheme.labelLarge?.copyWith(color: Colors.white),
+          ),
+          loading: () => Text(
+            '$initialLikeCount',
+            style: textTheme.labelLarge?.copyWith(color: Colors.white),
+          ),
+          error: (err, stack) => Text(
+            '!',
+            style: textTheme.labelLarge?.copyWith(color: Colors.red),
+          ),
         ),
       ],
     );

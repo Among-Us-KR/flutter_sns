@@ -51,7 +51,7 @@ Posts _postFromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
 
   return Posts(
     id: doc.id,
-    authorId: data['userId'] as String? ?? '',
+    authorId: data['authorId'] as String? ?? '',
     author: author,
     category: data['category'] as String? ?? '',
     mode: data['mode'] as String? ?? '',

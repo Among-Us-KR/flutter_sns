@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/post_actions.dart';
+import 'package:flutter_sns/write/presentation/widgets/image_page_view.dart';
 import 'package:intl/intl.dart';
 
 /// 게시물의 제목, 내용, 이미지, 상호작용 버튼 등을 포함하는 위젯
@@ -10,7 +11,7 @@ class PostContentView extends StatelessWidget {
   final int? commentCount;
   const PostContentView({super.key, required this.post, this.commentCount});
 
-  /// DateTime 객체를 '몇 분 전'과 같은 상대 시간 문자열로 변환합니다.
+  /// DateTime 객체를 '몇 분 전'과 같은 상대 시간 문자열로 변환
   String _formatTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -88,20 +89,18 @@ class PostContentView extends StatelessWidget {
 
           // 이미지
           if (post.images.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12.0),
-              child: Image.network(
-                post.images.first, // 첫 번째 이미지만 표시
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.error),
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
+                child: ImagePageView(imagePaths: post.images),
               ),
             ),
           const SizedBox(height: 16),
 
           // 좋아요 및 댓글 수
           PostActions(
+            postId: post.id,
             likeCount: post.stats.likesCount,
             commentCount: commentCount ?? post.stats.commentsCount,
           ),
