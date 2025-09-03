@@ -87,12 +87,12 @@ class PostRepositoryImpl implements PostRepository {
 
   @override
   Future<List<String>> uploadImages(List<File> images) async {
-    try {
-      // 단순 전달 (변환 불필요)
-      return await _dataSource.uploadImages(images);
-    } catch (e) {
-      throw Exception('이미지 업로드 중 오류 발생: $e');
-    }
+    // try {
+    // 단순 전달 (변환 불필요)
+    return await _dataSource.uploadImages(images);
+    // } catch (e) {
+    //   throw Exception('이미지 업로드 중 오류 발생: $e');
+    // }
   }
 
   @override

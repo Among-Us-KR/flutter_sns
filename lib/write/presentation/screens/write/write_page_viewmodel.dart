@@ -1,10 +1,12 @@
 // presentation/viewmodels/write_page_viewmodel.dart
+
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
-import 'package:flutter_sns/write/domain/entities/write_mode.dart'; // import 추가
+import 'package:flutter_sns/write/domain/entities/write_mode.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_sns/write/domain/entities/category.dart'; // Category 엔티티를 사용하도록 import 수정
 
 // categories 리스트를 WriteState 클래스 바깥으로 이동
 const categories = <String>[
@@ -18,12 +20,12 @@ const categories = <String>[
   '솔직스',
 ];
 
-// 상태 클래스는 그대로 사용
+// 상태 클래스
 class WriteState {
   final String title;
   final String content;
   final String selectedCategory;
-  final WriteMode? selectedMode; // 이 부분 추가
+  final WriteMode? selectedMode;
   final List<File> selectedImages;
   final List<String> uploadedImageUrls;
 
@@ -41,7 +43,7 @@ class WriteState {
     this.title = '',
     this.content = '',
     this.selectedCategory = '',
-    this.selectedMode, // 이 부분 추가
+    this.selectedMode,
     this.selectedImages = const [],
     this.uploadedImageUrls = const [],
     this.isLoading = false,
@@ -57,7 +59,7 @@ class WriteState {
     String? title,
     String? content,
     String? selectedCategory,
-    WriteMode? selectedMode, // 이 부분 추가
+    WriteMode? selectedMode,
     List<File>? selectedImages,
     List<String>? uploadedImageUrls,
     bool? isLoading,
@@ -72,7 +74,7 @@ class WriteState {
       title: title ?? this.title,
       content: content ?? this.content,
       selectedCategory: selectedCategory ?? this.selectedCategory,
-      selectedMode: selectedMode ?? this.selectedMode, // 이 부분 추가
+      selectedMode: selectedMode ?? this.selectedMode,
       selectedImages: selectedImages ?? this.selectedImages,
       uploadedImageUrls: uploadedImageUrls ?? this.uploadedImageUrls,
       isLoading: isLoading ?? this.isLoading,
@@ -90,12 +92,13 @@ class WriteState {
   bool get isContentValid =>
       content.trim().isNotEmpty && content.length <= 1000;
   bool get isCategoryValid => selectedCategory.isNotEmpty;
-  bool get isModeValid => selectedMode != null; // 이 부분 추가
+  bool get isModeValid => selectedMode != null;
   bool get isFormValid =>
       isTitleValid &&
       isContentValid &&
       isCategoryValid &&
-      isModeValid; // 이 부분 수정
+      isModeValid &&
+      selectedImages.isNotEmpty;
 }
 
 // 도메인 의존성을 콜백으로 주입
@@ -135,7 +138,7 @@ class WriteViewModel extends StateNotifier<WriteState> {
 
   // 모드 선택 로직
   void selectMode(WriteMode m) =>
-      state = state.copyWith(selectedMode: m, errorMessage: null); // 이 부분 추가
+      state = state.copyWith(selectedMode: m, errorMessage: null);
 
   // 이미지 갤러리에서 선택 (UI 로직)
   Future<void> pickImagesFromGallery() async {
@@ -182,13 +185,10 @@ class WriteViewModel extends StateNotifier<WriteState> {
   Future<void> createPost() async {
     // 뷰모델 수준의 폼 유효성 검사
     if (!state.isFormValid) {
-      state = state.copyWith(
-        errorMessage: '제목, 내용, 카테고리, 모드를 모두 입력해주세요.',
-      ); // 이 부분 수정
+      state = state.copyWith(errorMessage: '제목, 내용, 카테고리, 모드, 이미지를 모두 입력해주세요.');
       return;
     }
 
-    // 로그인된 사용자 정보 확인
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       state = state.copyWith(errorMessage: '로그인이 필요합니다.');
@@ -202,7 +202,6 @@ class WriteViewModel extends StateNotifier<WriteState> {
     );
 
     try {
-      // 1) 이미지 업로드 (유즈케이스의 유효성 검사 포함)
       List<String> urls = [];
       if (state.selectedImages.isNotEmpty) {
         state = state.copyWith(isImageUploading: true);
@@ -213,7 +212,6 @@ class WriteViewModel extends StateNotifier<WriteState> {
         );
       }
 
-      // 2) 도메인 엔티티 생성
       final now = DateTime.now();
       final post = Posts(
         id: '',
@@ -233,7 +231,6 @@ class WriteViewModel extends StateNotifier<WriteState> {
         reportCount: 0,
       );
 
-      // 3) 게시글 생성 (유즈케이스의 유효성 검사 포함)
       await _createPost(post);
 
       state = state.copyWith(
@@ -241,14 +238,15 @@ class WriteViewModel extends StateNotifier<WriteState> {
         successMessage: '게시글이 성공적으로 작성되었습니다!',
       );
       _resetForm();
-    } catch (e) {
-      // 유즈케이스에서 발생한 예외를 여기서 받아서 처리
+    } catch (e, st) {
+      print('[Upload] failed: $e\n$st');
+
       state = state.copyWith(
         isPosting: false,
         isImageUploading: false,
-        errorMessage: e.toString().contains('Exception:')
-            ? e.toString().split('Exception: ')[1]
-            : '알 수 없는 오류가 발생했습니다.',
+        errorMessage: e.toString().isEmpty
+            ? '알 수 없는 오류가 발생했습니다.'
+            : e.toString(),
       );
     }
   }

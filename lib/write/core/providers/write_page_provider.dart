@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/data/datasources/firebase_post_datasource.dart';
 import 'package:flutter_sns/write/data/repository/post_repository_impl.dart';
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
-import 'package:flutter_sns/write/domain/usecases/create_post_usecase.dart';
-import 'package:flutter_sns/write/domain/usecases/delete_post_usecase.dart';
-import 'package:flutter_sns/write/domain/usecases/update_post_usecase.dart';
-import 'package:flutter_sns/write/domain/usecases/upload_post_image_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/create_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/delete_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/update_post_usecase.dart';
+import 'package:flutter_sns/write/domain/usecases/post_usecase/upload_post_image_usecase.dart';
 import 'package:flutter_sns/write/presentation/screens/write/write_page_viewmodel.dart';
 import 'package:image_picker/image_picker.dart';
 

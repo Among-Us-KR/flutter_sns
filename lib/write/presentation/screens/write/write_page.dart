@@ -11,11 +11,6 @@ import 'package:flutter_sns/write/presentation/screens/write/widgets/image_carou
 import 'package:flutter_sns/write/presentation/screens/write/widgets/mode_card.dart';
 import 'package:image_picker/image_picker.dart';
 
-class WritePageConstants {
-  static const int maxTextLength = 1000;
-  static const Duration animationDuration = Duration(milliseconds: 250);
-}
-
 class WritePage extends ConsumerStatefulWidget {
   const WritePage({super.key});
 
@@ -25,16 +20,23 @@ class WritePage extends ConsumerStatefulWidget {
 
 class _WritePageState extends ConsumerState<WritePage> {
   final MessageService _messageService = SnackBarMessageService();
+  final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // 뷰모델의 콘텐츠를 컨트롤러에 바인딩
-    final viewModel = ref.read(writeViewModelProvider);
-    _contentCtrl.text = viewModel.content;
+
+    // 초기 값 바인딩
+    final vm = ref.read(writeViewModelProvider);
+    _titleCtrl.text = vm.title;
+    _contentCtrl.text = vm.content;
+
+    // 변경 사항 -> 뷰모델 반영
+    _titleCtrl.addListener(() {
+      ref.read(writeViewModelProvider.notifier).updateTitle(_titleCtrl.text);
+    });
     _contentCtrl.addListener(() {
-      // 컨트롤러 변경 시 뷰모델에 전달
       ref
           .read(writeViewModelProvider.notifier)
           .updateContent(_contentCtrl.text);
@@ -43,27 +45,28 @@ class _WritePageState extends ConsumerState<WritePage> {
 
   @override
   void dispose() {
+    _titleCtrl.dispose();
     _contentCtrl.dispose();
     super.dispose();
   }
 
-  // 빌드 메서드에서 Provider의 상태를 'ref.watch'로 관찰
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final viewModel = ref.watch(writeViewModelProvider);
-    final viewModelNotifier = ref.read(writeViewModelProvider.notifier);
+
+    final state = ref.watch(writeViewModelProvider);
+    final vm = ref.read(writeViewModelProvider.notifier);
     final canPost = ref.watch(canPostProvider);
 
-    // 에러/성공 메시지 알림
+    // 에러/성공 메시지 리스너
     ref.listen<String?>(writeViewModelProvider.select((s) => s.errorMessage), (
       prev,
       next,
     ) {
       if (next != null) {
         _messageService.showError(next);
-        viewModelNotifier.clearErrorMessage();
+        vm.clearErrorMessage();
       }
     });
     ref.listen<String?>(
@@ -71,9 +74,9 @@ class _WritePageState extends ConsumerState<WritePage> {
       (prev, next) {
         if (next != null) {
           _messageService.showSuccess(next);
-          viewModelNotifier.clearSuccessMessage();
+          vm.clearSuccessMessage();
           if (next == '게시글이 성공적으로 작성되었습니다!') {
-            Navigator.of(context).pop();
+            if (mounted) Navigator.of(context).pop();
           }
         }
       },
@@ -96,8 +99,7 @@ class _WritePageState extends ConsumerState<WritePage> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton(
-              // 뷰모델의 상태에 따라 버튼 활성화/비활성화
-              onPressed: canPost ? () => viewModelNotifier.createPost() : null,
+              onPressed: canPost ? vm.createPost : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: cs.secondary,
                 foregroundColor: cs.onSecondary,
@@ -127,16 +129,31 @@ class _WritePageState extends ConsumerState<WritePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 뷰모델의 이미지 리스트를 바인딩
-                ImageCarouselFreeScroll(
-                  images: viewModel.selectedImages,
-                  // 뷰모델의 메서드를 이벤트 콜백으로 전달
-                  onAdd: () => viewModelNotifier.pickImagesFromGallery(),
-                  onReplace: (index) => viewModelNotifier.replaceImage(
-                    index,
-                    ImageSource.gallery,
+                // ✅ 제목 입력 (사진 위)
+                TextField(
+                  controller: _titleCtrl,
+                  maxLength: 30,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  onRemove: (index) => viewModelNotifier.removeImage(index),
+                  decoration: const InputDecoration(
+                    hintText: '제목을 입력하세요 (최대 30자)',
+                    border: UnderlineInputBorder(),
+                    counterText: '',
+                    filled: false, // 테마 배경색 방지
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 이미지 카루셀
+                ImageCarouselFreeScroll(
+                  images: state.selectedImages, // List<File> 가정
+                  onAdd: vm.pickImagesFromGallery,
+                  onReplace: (index) =>
+                      vm.replaceImage(index, ImageSource.gallery),
+                  onRemove: vm.removeImage,
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -147,24 +164,23 @@ class _WritePageState extends ConsumerState<WritePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 뷰모델의 카테고리 상태와 연결
+                // 카테고리
                 CategorySelector(
-                  categories: categories,
-                  selectedCategory: viewModel.selectedCategory,
-                  onCategorySelected: (category) =>
-                      viewModelNotifier.selectCategory(category),
+                  categories: categories, // viewmodel에 있는 상수
+                  selectedCategory: state.selectedCategory,
+                  onCategorySelected: vm.selectCategory,
                 ),
                 const SizedBox(height: 24),
 
-                // 뷰모델의 컨트롤러와 연결
+                // 내용
                 ContentTextInput(
                   controller: _contentCtrl,
                   maxLength: 1000,
-                  onChanged: () {}, // onChanged는 TextEditingController가 처리
+                  onChanged: () {}, // 컨트롤러 리스너에서 처리
                 ),
                 const SizedBox(height: 24),
 
-                // 모드 선택은 아직 뷰모델에 없으므로, 필요에 따라 추가
+                // 모드 선택
                 Text(
                   '모드 선택',
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -178,12 +194,8 @@ class _WritePageState extends ConsumerState<WritePage> {
                       child: ModeCard(
                         title: '공감해줘',
                         subtitle: '따뜻하고 다정한\n말이 필요할 때',
-                        selected:
-                            viewModel.selectedMode ==
-                            WriteMode.empathy, // 뷰모델과 바인딩
-                        onTap: () => viewModelNotifier.selectMode(
-                          WriteMode.empathy,
-                        ), // 뷰모델의 메서드 호출
+                        selected: state.selectedMode == WriteMode.empathy,
+                        onTap: () => vm.selectMode(WriteMode.empathy),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -191,17 +203,13 @@ class _WritePageState extends ConsumerState<WritePage> {
                       child: ModeCard(
                         title: '팩폭해줘',
                         subtitle: '솔직하고 직설적인\n말이 필요할 때',
-                        selected:
-                            viewModel.selectedMode ==
-                            WriteMode.punch, // 뷰모델과 바인딩
-                        onTap: () => viewModelNotifier.selectMode(
-                          WriteMode.punch,
-                        ), // 뷰모델의 메서드 호출
+                        selected: state.selectedMode == WriteMode.punch,
+                        onTap: () => vm.selectMode(WriteMode.punch),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 120),
+                const SizedBox(height: 120), // 하단 버튼 영역 확보
               ],
             ),
           ),
@@ -211,8 +219,8 @@ class _WritePageState extends ConsumerState<WritePage> {
       // 하단 버튼
       bottomNavigationBar: BottomButtons(
         isValid: canPost,
-        onSubmit: () => viewModelNotifier.createPost(),
-        onTempSave: () => viewModelNotifier.saveDraft(),
+        onSubmit: vm.createPost,
+        onTempSave: vm.saveDraft,
       ),
     );
   }
