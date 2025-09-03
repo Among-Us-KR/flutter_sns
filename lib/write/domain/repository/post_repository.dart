@@ -13,4 +13,7 @@ abstract class PostRepository {
 
   // 이미지 파일 업로드
   Future<List<String>> uploadImages(List<File> images);
+
+  // 특정 ID의 게시글 조회 (권한 검사용)
+  Future<Posts?> getPostById(String postId);
 }

@@ -1,8 +1,8 @@
+// data/repositories/post_repository_impl.dart
 import 'dart:io';
-import 'package:flutter_sns/write/domain/entities/posts.dart'
-    hide Author, PostStats;
+import 'package:flutter_sns/write/domain/entities/posts.dart' as domain;
+import 'package:flutter_sns/write/data/models/posts_model.dart' as dto;
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
-import 'package:flutter_sns/write/data/models/posts_model.dart';
 import '../datasources/firebase_post_datasource.dart';
 
 /// PostRepository 인터페이스를 구현하는 클래스
@@ -12,13 +12,13 @@ class PostRepositoryImpl implements PostRepository {
   final FirebasePostDataSource _dataSource;
 
   @override
-  Future<String> createPost(Posts post) async {
+  Future<String> createPost(domain.Posts post) async {
     try {
       // 도메인 엔티티(Posts)를 DTO(PostsModel)로 변환
-      final postModel = PostsModel(
+      final postModel = dto.PostsModel(
         id: post.id,
         authorId: post.authorId,
-        author: Author(
+        author: dto.Author(
           nickname: post.author.nickname,
           profileImageUrl: post.author.profileImageUrl,
         ),
@@ -27,7 +27,7 @@ class PostRepositoryImpl implements PostRepository {
         title: post.title,
         content: post.content,
         images: post.images,
-        stats: PostStats(
+        stats: dto.PostStats(
           likesCount: post.stats.likesCount,
           commentsCount: post.stats.commentsCount,
         ),
@@ -44,13 +44,13 @@ class PostRepositoryImpl implements PostRepository {
   }
 
   @override
-  Future<void> updatePost(Posts post) async {
+  Future<void> updatePost(domain.Posts post) async {
     try {
       // 도메인 엔티티(Posts)를 DTO(PostsModel)로 변환
-      final postModel = PostsModel(
+      final postModel = dto.PostsModel(
         id: post.id,
         authorId: post.authorId,
-        author: Author(
+        author: dto.Author(
           nickname: post.author.nickname,
           profileImageUrl: post.author.profileImageUrl,
         ),
@@ -59,7 +59,7 @@ class PostRepositoryImpl implements PostRepository {
         title: post.title,
         content: post.content,
         images: post.images,
-        stats: PostStats(
+        stats: dto.PostStats(
           likesCount: post.stats.likesCount,
           commentsCount: post.stats.commentsCount,
         ),
@@ -92,6 +92,41 @@ class PostRepositoryImpl implements PostRepository {
       return await _dataSource.uploadImages(images);
     } catch (e) {
       throw Exception('이미지 업로드 중 오류 발생: $e');
+    }
+  }
+
+  @override
+  Future<domain.Posts?> getPostById(String postId) async {
+    try {
+      // 데이터 소스에서 DTO 가져오기
+      final postModel = await _dataSource.getPostById(postId);
+
+      if (postModel != null) {
+        // DTO를 도메인 엔티티로 변환
+        return domain.Posts(
+          id: postModel.id,
+          authorId: postModel.authorId,
+          author: domain.Author(
+            nickname: postModel.author.nickname,
+            profileImageUrl: postModel.author.profileImageUrl,
+          ),
+          category: postModel.category,
+          mode: postModel.mode,
+          title: postModel.title,
+          content: postModel.content,
+          images: postModel.images,
+          stats: domain.PostStats(
+            likesCount: postModel.stats.likesCount,
+            commentsCount: postModel.stats.commentsCount,
+          ),
+          createdAt: postModel.createdAt,
+          updatedAt: postModel.updatedAt,
+          reportCount: postModel.reportCount,
+        );
+      }
+      return null;
+    } catch (e) {
+      throw Exception('게시글 조회 중 오류 발생: $e');
     }
   }
 }
