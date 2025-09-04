@@ -152,15 +152,15 @@ class ProfileSliverAppBar extends ConsumerWidget {
                       const SizedBox(width: 7),
                       Expanded(
                         child: StatsItem(
-                          count: user.stats.empathyReceived,
+                          count: user.stats.likesReceived,
                           label: '받은 공감',
                         ),
                       ),
                       const SizedBox(width: 7),
                       Expanded(
                         child: StatsItem(
-                          count: user.stats.punchReceived,
-                          label: '받은 팩폭',
+                          count: user.stats.commentsReceived,
+                          label: '받은 댓글',
                         ),
                       ),
                     ],
@@ -217,13 +217,13 @@ class ProfileSliverAppBar extends ConsumerWidget {
                     StatInline(
                       theme: theme,
                       label: '받은 공감',
-                      value: user.stats.empathyReceived,
+                      value: user.stats.likesReceived,
                     ),
                     const StatDot(),
                     StatInline(
                       theme: theme,
-                      label: '받은 팩폭',
-                      value: user.stats.punchReceived,
+                      label: '받은 댓글',
+                      value: user.stats.commentsReceived,
                     ),
                   ],
                 ),

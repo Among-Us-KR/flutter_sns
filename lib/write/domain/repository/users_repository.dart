@@ -24,4 +24,6 @@ abstract class UserRepository {
     required String newNickname,
     required String? newProfileImageUrl,
   });
+
+  Stream<UserStats> getUserStatsStream(String uid);
 }

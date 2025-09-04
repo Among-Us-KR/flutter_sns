@@ -16,7 +16,4 @@ abstract class PostRepository {
 
   // 특정 ID의 게시글 조회 (권한 검사용)
   Future<Posts?> getPostById(String postId);
-
-  // 삭제 시 포스트 카운트 1 감소
-  Future<void> decrementUserPostsCount(String uid);
 }

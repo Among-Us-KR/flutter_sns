@@ -1,6 +1,7 @@
 // data/repositories/post_repository_impl.dart
 import 'dart:io';
 import 'package:flutter_sns/write/data/datasources/firebase_user_datasource.dart';
+import 'package:flutter_sns/write/data/datasources/user_datasource.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart' as domain;
 import 'package:flutter_sns/write/data/models/posts_model.dart' as dto;
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
@@ -12,7 +13,7 @@ class PostRepositoryImpl implements PostRepository {
   PostRepositoryImpl(this._postDataSource, this._userDataSource);
 
   final FirebasePostDataSource _postDataSource;
-  final FirebaseUserDataSource _userDataSource;
+  final UserDatasource _userDataSource;
 
   @override
   Future<String> createPost(domain.Posts post) async {
@@ -42,7 +43,7 @@ class PostRepositoryImpl implements PostRepository {
       // 데이터 소스를 통해 Firebase에 저장
       final postId = await _postDataSource.createPost(postModel);
       // 사용자 통계 업데이트 (postsCount +1)
-      await _userDataSource.incrementUserPostsCount(post.authorId);
+      await _userDataSource.incrementPostsCount(post.authorId);
 
       return postId;
     } catch (e) {
@@ -93,7 +94,7 @@ class PostRepositoryImpl implements PostRepository {
         await _postDataSource.deletePost(postId);
 
         // 사용자 통계 업데이트 (postsCount -1)
-        await _userDataSource.decrementUserPostsCount(post.authorId);
+        await _userDataSource.decrementPostsCount(post.authorId);
       }
     } catch (e) {
       throw Exception('게시글 삭제 중 오류 발생: $e');
@@ -142,15 +143,6 @@ class PostRepositoryImpl implements PostRepository {
       return null;
     } catch (e) {
       throw Exception('게시글 조회 중 오류 발생: $e');
-    }
-  }
-
-  @override
-  Future<void> decrementUserPostsCount(String uid) async {
-    try {
-      await _userDataSource.decrementUserPostsCount(uid);
-    } catch (e) {
-      throw Exception('사용자 게시글 수 감소 중 오류 발생: $e');
     }
   }
 }
