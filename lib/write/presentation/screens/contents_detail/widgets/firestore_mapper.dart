@@ -94,7 +94,9 @@ comment_entity.Comments commentFromFirestore(
   return comment_entity.Comments(
     id: doc.id,
     postId: data['postId'] as String? ?? '',
-    authorId: data['authorId'] as String? ?? '',
+    // Firestore에는 'userId'로 저장되지만, 앱의 다른 부분과의 호환성을 위해
+    // 'Comments' 엔티티의 'authorId' 필드에 매핑합니다.
+    authorId: data['userId'] as String? ?? '',
     author: author,
     content: data['content'] as String? ?? '',
     createdAt: createdAt,

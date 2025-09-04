@@ -19,33 +19,33 @@ class CommentNotificationService {
         .where('postOwnerId', isEqualTo: currentUser.uid)
         .snapshots()
         .listen((snapshot) async {
-      for (final docChange in snapshot.docChanges) {
-        if (docChange.type != DocumentChangeType.added) continue;
+          for (final docChange in snapshot.docChanges) {
+            if (docChange.type != DocumentChangeType.added) continue;
 
-        final commentData = docChange.doc.data();
-        if (commentData == null) continue;
+            final commentData = docChange.doc.data();
+            if (commentData == null) continue;
 
-        final commenterId = commentData['commenterId'];
-        final commentContent = commentData['content'] ?? '댓글 내용 없음';
-        final commentId = commentData['commentId'];
+            final commenterId = commentData['commenterId'];
+            final commentContent = commentData['content'] ?? '댓글 내용 없음';
+            final commentId = commentData['commentId'];
 
-        if (commenterId == null || commentId == null) continue;
+            if (commenterId == null || commentId == null) continue;
 
-        final ownerDoc = await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .get();
+            final ownerDoc = await _firestore
+                .collection('users')
+                .doc(currentUser.uid)
+                .get();
 
-        final pushAllowed = ownerDoc.data()?['pushNotifications'] ?? false;
-        if (!pushAllowed) continue;
+            final pushAllowed = ownerDoc.data()?['pushNotifications'] ?? false;
+            if (!pushAllowed) continue;
 
-        await NotificationService.showNotification(
-          id: commentId.hashCode,
-          title: '새 댓글이 달렸습니다!',
-          body: commentContent,
-        );
-      }
-    });
+            await NotificationService.showNotification(
+              id: commentId.hashCode,
+              title: '새 댓글이 달렸습니다!',
+              body: commentContent,
+            );
+          }
+        });
   }
 
   void dispose() {
