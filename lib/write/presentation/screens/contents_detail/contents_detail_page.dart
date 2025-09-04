@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
+import 'package:flutter_sns/utils/xss.dart';
+import 'package:flutter_sns/write/core/providers/providers.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comment_entity;
 import 'package:flutter_sns/write/domain/entities/posts.dart';

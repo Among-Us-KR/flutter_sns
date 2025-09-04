@@ -5,26 +5,30 @@ import '../models/users_model.dart' as dto;
 abstract class UserDatasource {
   Future<void> createUser(dto.UsersModel user);
   Future<dto.UsersModel?> getUser(String uid);
-  Future<void> updateUserProfile(dto.UsersModel user); // 프로필 필드 업데이트
+  Future<void> updateUserProfile(dto.UsersModel user);
   Future<void> updateUserStats(
     String uid,
     dto.UserStats stats,
-  ); // stats만 부분 업데이트
-  Future<bool> existsNicknameLower(String nicknameLower);
+  ); // <- 추가 및 이름 통일
+  Future<bool> existsNicknameLower(String nickname);
   Future<void> incrementUserPostsCount(String uid);
   Future<void> decrementUserPostsCount(String uid);
+  Future<void> incrementEmpathyCount(String userId);
+  Future<void> decrementEmpathyCount(String userId);
+  Future<void> incrementPunchCount(String userId);
+  Future<void> decrementPunchCount(String userId);
 }
 
 /// Firestore 구현체
 class FirebaseUserDatasource implements UserDatasource {
   final FirebaseFirestore _firestore;
+
   FirebaseUserDatasource({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection('users');
 
-  /// 최초 생성: 문서 id == uid, 서버시간 세팅, nicknameLower 동기화
   @override
   Future<void> createUser(dto.UsersModel user) async {
     final data = user.toJson()
@@ -43,19 +47,25 @@ class FirebaseUserDatasource implements UserDatasource {
     return dto.UsersModel.fromJson(doc.data()!);
   }
 
-  /// 프로필 업데이트: 서버시간 + nicknameLower 동기화
   @override
   Future<void> updateUserProfile(dto.UsersModel user) async {
-    final data = user.toJson()
-      ..['nicknameLower'] = user.nickname.trim().toLowerCase()
-      ..['updatedAt'] = FieldValue.serverTimestamp();
+    // 1. DTO의 toJson() 메서드를 호출하여 업데이트할 데이터를 가져옵니다.
+    //    (이때, 'nicknameLower' 필드가 자동으로 포함됩니다.)
+    final data = user.toJson();
 
+    // 2. 서버 타임스탬프를 사용하여 'updatedAt' 필드를 갱신합니다.
+    data['updatedAt'] = FieldValue.serverTimestamp();
+
+    // 3. 'uid' 필드는 문서 ID로 사용되므로 업데이트 데이터에서 제거합니다.
+    data.remove('uid');
+
+    // 4. Firestore 문서에 업데이트를 적용합니다.
     await _col.doc(user.uid).update(data);
   }
 
-  /// 통계만 부분 업데이트 (문서 전체 덮지 않음)
   @override
   Future<void> updateUserStats(String uid, dto.UserStats stats) async {
+    // <- 이름 통일
     await _col.doc(uid).update({
       'stats.postsCount': stats.postsCount,
       'stats.commentsCount': stats.commentsCount,
@@ -65,10 +75,9 @@ class FirebaseUserDatasource implements UserDatasource {
     });
   }
 
-  /// 닉네임 중복(대소문자 무시)
   @override
-  Future<bool> existsNicknameLower(String nicknameLower) async {
-    final lower = nicknameLower.trim().toLowerCase();
+  Future<bool> existsNicknameLower(String nickname) async {
+    final lower = nickname.trim().toLowerCase();
     final snap = await _col
         .where('nicknameLower', isEqualTo: lower)
         .limit(1)
@@ -77,7 +86,7 @@ class FirebaseUserDatasource implements UserDatasource {
   }
 
   @override
-  Future<void> decrementUserPostsCount(String uid) async {
+  Future<void> incrementUserPostsCount(String uid) async {
     await _col.doc(uid).update({
       'stats.postsCount': FieldValue.increment(1),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -85,10 +94,38 @@ class FirebaseUserDatasource implements UserDatasource {
   }
 
   @override
-  Future<void> incrementUserPostsCount(String uid) async {
+  Future<void> decrementUserPostsCount(String uid) async {
     await _col.doc(uid).update({
       'stats.postsCount': FieldValue.increment(-1),
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
+  Future<void> incrementEmpathyCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.empathyReceived': FieldValue.increment(1),
+    });
+  }
+
+  @override
+  Future<void> decrementEmpathyCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.empathyReceived': FieldValue.increment(-1),
+    });
+  }
+
+  @override
+  Future<void> incrementPunchCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.punchReceived': FieldValue.increment(1),
+    });
+  }
+
+  @override
+  Future<void> decrementPunchCount(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'stats.punchReceived': FieldValue.increment(-1),
     });
   }
 }

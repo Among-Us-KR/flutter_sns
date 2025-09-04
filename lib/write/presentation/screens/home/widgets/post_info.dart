@@ -12,6 +12,7 @@ class PostInfo extends ConsumerWidget {
   final String caption;
   final DateTime createdAt;
   final int commentCount;
+  final String? profileImageUrl;
 
   const PostInfo({
     super.key,
@@ -20,6 +21,7 @@ class PostInfo extends ConsumerWidget {
     required this.caption,
     required this.createdAt,
     required this.commentCount,
+    this.profileImageUrl,
   });
 
   String _formatTimeAgo(DateTime dateTime) {
@@ -57,7 +59,18 @@ class PostInfo extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const CircleAvatar(radius: 8, backgroundColor: Colors.grey),
+                CircleAvatar(
+                  radius: 8,
+                  backgroundColor: Colors.grey,
+                  // Use a backgroundImage if the URL is not null
+                  backgroundImage: profileImageUrl != null
+                      ? NetworkImage(profileImageUrl!)
+                      : null,
+                  // Display a default icon if there's no image
+                  child: profileImageUrl == null
+                      ? const Icon(Icons.person, size: 12, color: Colors.white)
+                      : null,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   username,

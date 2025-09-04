@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_sns/write/core/services/nickname_validator.dart';
 import 'package:flutter_sns/write/domain/repository/users_repository.dart';
 import 'package:flutter_sns/write/domain/entities/users.dart' as domain;
 import 'package:flutter_sns/write/data/datasources/user_datasource.dart';
@@ -8,8 +10,9 @@ import 'package:flutter_sns/write/data/models/users_model.dart' as dto;
 class UserRepositoryImpl implements UserRepository {
   final UserDatasource _ds;
   final FirebaseStorageDataSource _storageDs;
+  final FirebaseFirestore _firestore;
 
-  UserRepositoryImpl(this._ds, this._storageDs);
+  UserRepositoryImpl(this._ds, this._storageDs, this._firestore);
 
   @override
   Future<domain.User> getUserProfile(String uid) async {
@@ -42,11 +45,11 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<void> updateUserProfile(domain.User u) async {
-    // 도메인 -> DTO 매핑
     final m = dto.UsersModel(
       uid: u.uid,
       email: u.email,
       nickname: u.nickname,
+
       profileImageUrl: u.profileImageUrl,
       privacyConsent: dto.PrivacyConsent(
         agreedAt: u.privacyConsent.agreedAt,
@@ -60,18 +63,18 @@ class UserRepositoryImpl implements UserRepository {
         punchReceived: u.stats.punchReceived,
       ),
       pushNotifications: u.pushNotifications,
-      createdAt: u.createdAt, // createUser 시에만 사용됨
+      createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       reportCount: u.reportCount,
     );
 
-    // updatedAt / nicknameLower는 DataSource에서 일괄 처리
+    final data = m.toJson();
+
     await _ds.updateUserProfile(m);
   }
 
   @override
   Future<void> updateUserStats(String uid, domain.UserStats s) async {
-    // 부분 업데이트 전용 — DTO 변환만 해서 전달
     final stats = dto.UserStats(
       postsCount: s.postsCount,
       commentsCount: s.commentsCount,
@@ -84,11 +87,55 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<String> uploadProfileImage(String uid, File file) async {
     final url = await _storageDs.uploadProfileImage(uid, file);
-    return url ?? '';
+    return url;
   }
 
   @override
   Future<bool> isNicknameDuplicate(String nickname) async {
-    return _ds.existsNicknameLower(nickname);
+    // Use the `NicknamePolicy` to normalize the nickname before checking.
+    final lowerNickname = NicknamePolicy.normalizedLower(nickname);
+    return _ds.existsNicknameLower(lowerNickname);
+  }
+
+  @override
+  Future<void> updateDenormalizedUserData({
+    required String uid,
+    required String newNickname,
+    required String? newProfileImageUrl,
+  }) async {
+    final batch = _firestore.batch();
+
+    // 1. 게시글 업데이트
+    final postCollection = _firestore.collection('posts');
+    // 'userId' 대신 'authorId'로 쿼리
+    final userPostsQuery = await postCollection
+        .where('authorId', isEqualTo: uid)
+        .get();
+    for (var doc in userPostsQuery.docs) {
+      batch.update(doc.reference, {
+        // 'user.nickname' 대신 'author.nickname' 사용
+        'author.nickname': newNickname,
+        // 'user.profileImageUrl' 대신 'author.profileImageUrl' 사용
+        'author.profileImageUrl': newProfileImageUrl,
+      });
+    }
+
+    // 2. 댓글 업데이트
+    final commentsCollection = _firestore.collection('comments');
+    // 'userId'로 쿼리 (이 부분은 올바릅니다)
+    final userCommentsQuery = await commentsCollection
+        .where('userId', isEqualTo: uid)
+        .get();
+    for (var doc in userCommentsQuery.docs) {
+      batch.update(doc.reference, {
+        // 'user.nickname' 대신 'author.nickname' 사용
+        'author.nickname': newNickname,
+        // 'user.profileImageUrl' 대신 'author.profileImageUrl' 사용
+        'author.profileImageUrl': newProfileImageUrl,
+      });
+    }
+
+    // 3. 커밋
+    await batch.commit();
   }
 }
