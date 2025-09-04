@@ -31,8 +31,17 @@ class CommentTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // TODO: 실제 프로필 이미지 URL로 교체
-        const CircleAvatar(radius: 18, backgroundColor: AppColors.n100),
+        // 댓글 작성자의 프로필 이미지를 표시
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: AppColors.n100,
+          backgroundImage: comment.author.profileImageUrl != null
+              ? NetworkImage(comment.author.profileImageUrl!)
+              : null,
+          child: comment.author.profileImageUrl == null
+              ? const Icon(Icons.person, size: 20, color: AppColors.n400)
+              : null,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

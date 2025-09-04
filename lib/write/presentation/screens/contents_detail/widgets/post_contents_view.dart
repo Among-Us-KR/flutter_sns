@@ -66,8 +66,16 @@ class PostContentView extends StatelessWidget {
           // 작성자 정보
           Row(
             children: [
-              // TODO: 실제 프로필 이미지 URL로 교체
-              const CircleAvatar(radius: 12, backgroundColor: AppColors.n100),
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: AppColors.n100,
+                backgroundImage: post.author.profileImageUrl != null
+                    ? NetworkImage(post.author.profileImageUrl!)
+                    : null,
+                child: post.author.profileImageUrl == null
+                    ? const Icon(Icons.person, size: 16, color: AppColors.n400)
+                    : null,
+              ),
               const SizedBox(width: 8),
               Text(
                 post.author.nickname,
