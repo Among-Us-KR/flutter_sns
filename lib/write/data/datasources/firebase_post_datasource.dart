@@ -137,9 +137,16 @@ class FirebasePostDataSource {
       final querySnapshot = await _posts
           .where('authorId', isEqualTo: userId)
           .get();
-      return querySnapshot.docs
-          .map((doc) => PostsModel.fromFirestore(doc))
-          .toList();
+      final List<PostsModel> posts = [];
+      for (final doc in querySnapshot.docs) {
+        try {
+          // 데이터 파싱 중 오류가 발생할 수 있는 문서를 건너뜁니다.
+          posts.add(PostsModel.fromFirestore(doc));
+        } catch (e) {
+          print('게시글(${doc.id}) 파싱 실패, 건너뜁니다: $e');
+        }
+      }
+      return posts;
     } catch (e) {
       throw Exception('사용자 게시글 조회 실패: $e');
     }
@@ -151,8 +158,16 @@ class FirebasePostDataSource {
       final querySnapshot = await _likes
           .where('userId', isEqualTo: userId)
           .get();
+      // 데이터 무결성을 위해 postId가 null이거나 String이 아닌 경우를 필터링합니다.
       return querySnapshot.docs
-          .map((doc) => doc.data()['postId'] as String)
+          .map((doc) {
+            final data = doc.data();
+            if (data.containsKey('postId') && data['postId'] is String) {
+              return data['postId'] as String;
+            }
+            return null;
+          })
+          .whereType<String>() // null 값을 걸러냅니다.
           .toList();
     } catch (e) {
       throw Exception('사용자 좋아요 게시글 ID 조회 실패: $e');
@@ -163,7 +178,7 @@ class FirebasePostDataSource {
   Future<List<String>> getCommentedPostIds(String userId) async {
     try {
       final querySnapshot = await _comments
-          .where('userId', isEqualTo: userId)
+          .where('authorId', isEqualTo: userId)
           .get();
       // 중복된 postId를 제거하기 위해 Set을 사용
       return querySnapshot.docs
@@ -191,9 +206,14 @@ class FirebasePostDataSource {
       final querySnapshot = await _posts
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
-      posts.addAll(
-        querySnapshot.docs.map((doc) => PostsModel.fromFirestore(doc)).toList(),
-      );
+      for (final doc in querySnapshot.docs) {
+        try {
+          // 데이터 파싱 중 오류가 발생할 수 있는 문서를 건너뜁니다.
+          posts.add(PostsModel.fromFirestore(doc));
+        } catch (e) {
+          print('게시글(${doc.id}) 파싱 실패, 건너뜁니다: $e');
+        }
+      }
     }
     return posts;
   }

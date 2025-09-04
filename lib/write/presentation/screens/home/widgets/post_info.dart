@@ -113,7 +113,7 @@ class PostInfo extends ConsumerWidget {
                     padding: const EdgeInsets.only(right: 8.0),
                     child: Text(
                       '#$tag',
-                      style: AppTypography.labelXS(whiteColor),
+                      style: AppTypography.caption(whiteColor),
                     ),
                   ),
                 ),
@@ -121,11 +121,11 @@ class PostInfo extends ConsumerWidget {
                 commentsCountAsync.when(
                   data: (count) => Text(
                     '댓글 $count',
-                    style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
+                    style: AppTypography.caption(whiteColor.withOpacity(0.8)),
                   ),
                   loading: () => Text(
                     '댓글 $commentCount', // 로딩 중에는 기존 stats 값 표시
-                    style: AppTypography.labelXS(whiteColor.withOpacity(0.8)),
+                    style: AppTypography.caption(whiteColor.withOpacity(0.8)),
                   ),
                   error: (err, stack) => const SizedBox.shrink(),
                 ),

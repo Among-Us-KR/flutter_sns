@@ -29,13 +29,13 @@ class PostActions extends ConsumerWidget {
               isLiked
                   ? 'assets/icons/heart_orange.png'
                   : 'assets/icons/heart_grey_empty.png',
-              width: 20,
-              height: 20,
+              width: 30,
+              height: 30,
             ),
             loading: () => Image.asset(
               'assets/icons/heart_grey_empty.png',
-              width: 20,
-              height: 20,
+              width: 30,
+              height: 30,
             ),
             error: (err, stack) => const Icon(Icons.error, size: 20),
           ),

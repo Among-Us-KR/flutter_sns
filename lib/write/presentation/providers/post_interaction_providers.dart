@@ -115,6 +115,48 @@ class PostInteractionService {
       });
     });
   }
+
+  /// 게시물을 신고하고 신고 횟수를 1 증가시킵니다.
+  Future<void> reportPost({
+    required String postId,
+    String reason = '일반 신고', // 신고 사유 (추후 확장 가능)
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
+    final reporterId = currentUser.uid;
+
+    final postRef = _firestore.collection('posts').doc(postId);
+    // 한 사용자가 같은 게시물을 여러 번 신고하는 것을 방지하기 위해 복합 ID를 사용합니다.
+    final reportId = '${postId}_$reporterId';
+    final reportRef = _firestore.collection('reports').doc(reportId);
+
+    await _firestore.runTransaction((transaction) async {
+      final postDoc = await transaction.get(postRef);
+      if (!postDoc.exists) {
+        throw Exception('신고할 게시물을 찾을 수 없습니다.');
+      }
+
+      final reportDoc = await transaction.get(reportRef);
+      if (reportDoc.exists) {
+        // 이미 신고한 경우, 아무 작업도 하지 않고 성공한 것처럼 처리하거나 예외를 던질 수 있습니다.
+        throw Exception('이미 신고한 게시물입니다.');
+      }
+
+      // 1. 'reports' 컬렉션에 새로운 신고 문서를 생성합니다.
+      transaction.set(reportRef, {
+        'postId': postId,
+        'postOwnerId': postDoc.data()?['authorId'], // 게시물 작성자 ID
+        'reporterId': reporterId, // 신고자 ID
+        'reason': reason,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. 'posts' 문서의 reportCount를 1 증가시킵니다.
+      transaction.update(postRef, {'reportCount': FieldValue.increment(1)});
+    });
+  }
 }
 
 final postInteractionServiceProvider = Provider((ref) {
