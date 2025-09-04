@@ -41,18 +41,33 @@ class HomePage extends ConsumerWidget {
             child: postsAsyncValue.when(
               data: (posts) {
                 if (posts.isEmpty) {
-                  return const Center(child: Text('아직 게시물이 없어요. 첫 글을 작성해보세요!'));
+                  return RefreshIndicator(
+                    onRefresh: () => ref.refresh(postsStreamProvider.future),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: Center(
+                            child: Text('아직 게시물이 없어요. 첫 글을 작성해보세요!'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
-                return ScrollConfiguration(
-                  behavior: NoGlowScrollBehavior(),
-                  child: PageView.builder(
-                    scrollDirection: Axis.vertical,
-                    controller: controller,
-                    itemCount: posts.length,
-                    itemBuilder: (context, index) {
-                      final post = posts[index];
-                      return PostView(post: post);
-                    },
+                return RefreshIndicator(
+                  onRefresh: () => ref.refresh(postsStreamProvider.future),
+                  child: ScrollConfiguration(
+                    behavior: NoGlowScrollBehavior(),
+                    child: PageView.builder(
+                      scrollDirection: Axis.vertical,
+                      controller: controller,
+                      itemCount: posts.length,
+                      itemBuilder: (context, index) {
+                        final post = posts[index];
+                        return PostView(post: post);
+                      },
+                    ),
                   ),
                 );
               },
@@ -60,7 +75,19 @@ class HomePage extends ConsumerWidget {
               error: (error, stackTrace) {
                 print('게시물을 불러오는 중 에러 발생: $error');
                 print(stackTrace);
-                return Center(child: Text('데이터를 불러오는 데 실패했습니다.\n$error'));
+                return RefreshIndicator(
+                  onRefresh: () => ref.refresh(postsStreamProvider.future),
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverFillRemaining(
+                        child: Center(
+                          child: Text('데이터를 불러오는 데 실패했습니다.\n$error'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
