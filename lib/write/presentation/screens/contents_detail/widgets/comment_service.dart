@@ -23,34 +23,28 @@ class CommentService {
       throw Exception('댓글 내용을 입력해주세요.');
     }
 
-    // 1. 댓글 작성자의 정보와 게시물 작성자의 정보를 동시에 가져옵니다. (네트워크 효율성 개선)
-    final userDocFuture = _firestore
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
-    final postDocFuture = _firestore.collection('posts').doc(postId).get();
+    final postRef = _firestore.collection('posts').doc(postId);
+    final userRef = _firestore.collection('users').doc(currentUser.uid);
+    final newCommentRef = _firestore.collection('comments').doc();
 
-    final results = await Future.wait([userDocFuture, postDocFuture]);
+    // 트랜잭션을 사용하여 댓글 추가와 게시물 댓글 수 업데이트를 원자적으로 처리합니다.
+    await _firestore.runTransaction((transaction) async {
+      // 1. 댓글 작성자와 게시물 정보를 가져옵니다.
+      final userDoc = await transaction.get(userRef);
+      final postDoc = await transaction.get(postRef);
 
-    // Dart 3의 패턴 매칭을 사용하여 더 안전하게 타입을 확인하고 변수를 할당합니다.
-    if (results case [
-      final DocumentSnapshot<Map<String, dynamic>> userDoc,
-      final DocumentSnapshot<Map<String, dynamic>> postDoc,
-    ]) {
-      // userDoc과 postDoc이 올바른 타입으로 안전하게 할당되었습니다.
-      // 이 블록 안에서 나머지 로직을 수행합니다.
-
-      final userData = userDoc.data();
-      final nickname = userData?['nickname'] as String? ?? '이름없음';
-      final profileImageUrl = userData?['profileImageUrl'] as String?;
-
-      // 2. 알림 기능을 위해 게시물 원본 작성자의 ID를 가져옵니다.
-      final postOwnerId = postDoc.data()?['authorId'];
-      if (postOwnerId == null) {
-        throw Exception('게시물 작성자 정보를 찾을 수 없습니다.');
+      if (!userDoc.exists) {
+        throw Exception('사용자 정보를 찾을 수 없습니다.');
+      }
+      if (!postDoc.exists) {
+        throw Exception('게시물을 찾을 수 없습니다.');
       }
 
-      final newCommentRef = _firestore.collection('comments').doc();
+      final userData = userDoc.data()!;
+      final nickname = userData['nickname'] as String? ?? '이름없음';
+      final profileImageUrl = userData['profileImageUrl'] as String?;
+
+      final postOwnerId = postDoc.data()!['authorId'];
 
       final commentData = {
         'postId': postId,
@@ -62,11 +56,43 @@ class CommentService {
         'updatedAt': FieldValue.serverTimestamp(),
         'reportCount': 0,
       };
-      await newCommentRef.set(commentData);
-    } else {
-      // Future.wait의 결과가 예상과 다른 경우(예: null)에 대한 예외 처리
-      throw Exception('사용자 또는 게시물 정보를 가져오는 데 실패했습니다.');
+
+      // 2. 'comments' 컬렉션에 새 댓글 문서를 생성합니다.
+      transaction.set(newCommentRef, commentData);
+
+      // 3. 'posts' 문서의 commentsCount를 1 증가시킵니다.
+      transaction.update(postRef, {
+        'stats.commentsCount': FieldValue.increment(1),
+      });
+    });
+  }
+
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('로그인이 필요합니다.');
     }
+    final userId = currentUser.uid;
+
+    final postRef = _firestore.collection('posts').doc(postId);
+    final commentRef = _firestore.collection('comments').doc(commentId);
+
+    await _firestore.runTransaction((transaction) async {
+      final commentDoc = await transaction.get(commentRef);
+      if (!commentDoc.exists) {
+        throw Exception('삭제할 댓글을 찾을 수 없습니다.');
+      }
+      if (commentDoc.data()?['userId'] != userId) {
+        throw Exception('댓글을 삭제할 권한이 없습니다.');
+      }
+      transaction.delete(commentRef);
+      transaction.update(postRef, {
+        'stats.commentsCount': FieldValue.increment(-1),
+      });
+    });
   }
 }
 
