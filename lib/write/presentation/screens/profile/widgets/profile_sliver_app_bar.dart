@@ -182,27 +182,27 @@ class ProfileSliverAppBar extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    StatInline(
-                      theme: theme,
-                      label: '글',
-                      value: user.stats.postsCount,
-                    ),
-                    // const StatDot(),
-                    // StatInline(
-                    //   theme: theme,
-                    //   label: '받은 공감',
-                    //   value: user.stats.likesReceived,
-                    // ),
-                    // const StatDot(),
-                    // StatInline(
-                    //   theme: theme,
-                    //   label: '받은 댓글',
-                    //   value: user.stats.commentsReceived,
-                    // ),
-                  ],
-                ),
+                // Row(
+                //   children: [
+                //     StatInline(
+                //       theme: theme,
+                //       label: '글',
+                //       value: user.stats.postsCount,
+                //     ),
+                //     // const StatDot(),
+                //     // StatInline(
+                //     //   theme: theme,
+                //     //   label: '받은 공감',
+                //     //   value: user.stats.likesReceived,
+                //     // ),
+                //     // const StatDot(),
+                //     // StatInline(
+                //     //   theme: theme,
+                //     //   label: '받은 댓글',
+                //     //   value: user.stats.commentsReceived,
+                //     // ),
+                //   ],
+                // ),
               ],
             ),
           ),
