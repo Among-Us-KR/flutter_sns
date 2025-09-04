@@ -41,7 +41,8 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -56,7 +57,12 @@ class _LoginPageState extends State<LoginPage> {
         final docRef = _firestore.collection('users').doc(uid);
         final doc = await docRef.get();
 
-        if (!doc.exists) {
+        if (doc.exists) {
+          // ✅ 기존 사용자인 경우
+          if (!mounted) return;
+          context.goNamed('home'); // 바로 홈 화면으로 이동
+        } else {
+          // ✅ 신규 사용자인 경우
           await docRef.set({
             'uid': user.uid,
             'email': user.email,
@@ -67,20 +73,15 @@ class _LoginPageState extends State<LoginPage> {
               'version': '1.0',
               'ipAddress': '',
             },
-            'stats': {
-              'postsCount': 0,
-              'commentsCount': 0,
-              'likesReceived': 0,
-            },
+            'stats': {'postsCount': 0, 'commentsCount': 0, 'likesReceived': 0},
             'pushNotifications': false,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
             'reportCount': 0,
           });
+          if (!mounted) return;
+          context.go('/login-detail'); // 닉네임 설정 페이지로 이동
         }
-
-        if (!mounted) return;
-        context.go('/login-detail');
       }
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -128,9 +129,9 @@ class _LoginPageState extends State<LoginPage> {
   /// ✅ 스낵바 메시지 출력
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// ✅ UI
@@ -144,10 +145,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Image.asset('assets/logo/logo_horizontal.png', fit: BoxFit.cover),
             const SizedBox(height: 16),
-            const Text(
-              '지친 현생을 위한 익명 휴게소',
-              style: TextStyle(fontSize: 18),
-            ),
+            const Text('지친 현생을 위한 익명 휴게소', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 32),
             CheckboxListTile(
               title: const Text(

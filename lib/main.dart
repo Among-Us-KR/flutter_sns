@@ -13,9 +13,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase 초기화
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 로컬 알림 초기화
   await NotificationService.init();
@@ -23,23 +21,32 @@ Future<void> main() async {
   // 금지어 CSV 로딩
   await XssFilter.loadBannedWordsFromCSV();
 
-  // 로그인된 사용자에 대해 댓글 알림 구독 시작
-  _subscribeToCommentNotifications();
-
   // 앱 실행
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(const Root());
 }
 
-/// 로그인 상태에 따라 댓글 알림 구독 시작
-void _subscribeToCommentNotifications() {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    CommentNotificationService().subscribeToComments();
-  }
+/// 로그인 상태에 따라 ProviderScope 전체를 초기화 + 댓글 알림 구독
+class Root extends StatelessWidget {
+  const Root({super.key});
 
-  FirebaseAuth.instance.authStateChanges().listen((user) {
-    if (user != null) {
-      CommentNotificationService().subscribeToComments();
-    }
-  });
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+
+        // 로그인된 경우 → 댓글 알림 구독 시작
+        if (user != null) {
+          CommentNotificationService().subscribeToComments();
+        }
+
+        // 로그인/로그아웃이 바뀔 때마다 ProviderScope 전체 리셋
+        return ProviderScope(
+          key: ValueKey(user?.uid), // uid 달라지면 ProviderScope 재생성
+          child: const MyApp(),
+        );
+      },
+    );
+  }
 }

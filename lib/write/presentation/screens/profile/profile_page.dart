@@ -1,14 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/profile_page_view_model.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_sns/write/core/providers/providers.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/tab_list/comment_card.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/tab_list/post_card.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/tab_list/tab_list_view.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comments_domain;
+import 'package:flutter_sns/write/presentation/screens/profile/profile_page_view_model.dart';
+import 'package:flutter_sns/write/presentation/screens/profile/tab_list/comment_card.dart';
+import 'package:flutter_sns/write/presentation/screens/profile/tab_list/post_card.dart';
+import 'package:flutter_sns/write/presentation/screens/profile/tab_list/tab_list_view.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'widgets/profile_sliver_app_bar.dart';
 import 'widgets/profile_tab_bar.dart';
 
@@ -39,10 +41,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final viewModel = ref.read(profileViewModelProvider(null).notifier);
 
     // 뷰모델 상태를 watch
     final profileState = ref.watch(profileViewModelProvider(null));
-    final viewModel = ref.read(profileViewModelProvider(null).notifier);
 
     // ✅ 위젯 빌드가 완료된 후에 데이터 로드 함수를 호출하도록 수정
     // 이 방법은 "Tried to modify a provider while the widget tree was building" 오류를 해결합니다.
@@ -66,9 +68,57 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   ProfileSliverAppBar(
-                    onEditPressed: () {
-                      context.pushNamed('profile_edit');
-                    },
+                    actions: [
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.settings),
+                        onSelected: (String result) async {
+                          if (result == 'edit_profile') {
+                            context.pushNamed('profile_edit');
+                          } else if (result == 'logout') {
+                            try {
+                              // Firebase 로그아웃
+                              await FirebaseAuth.instance.signOut();
+
+                              // Google 로그아웃 (필요하다면)
+                              final googleSignIn = GoogleSignIn();
+                              await googleSignIn.signOut();
+                              await googleSignIn.disconnect();
+
+                              if (context.mounted) {
+                                // 라우팅만 처리 (SnackBar는 생략하거나 login 페이지에서 띄우는 게 안정적)
+                                ref.invalidate(
+                                  profileViewModelProvider(null),
+                                ); // 상태 초기화
+                                context.goNamed('login');
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('로그아웃 실패: $e')),
+                                );
+                              }
+                            }
+                          } else if (result == 'delete_account') {
+                            // TODO: 회원 탈퇴 기능 구현
+                          }
+                        },
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<String>>[
+                              const PopupMenuItem<String>(
+                                value: 'edit_profile',
+                                child: Text('프로필 편집'),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'logout',
+                                child: Text('로그아웃'),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'delete_account',
+                                child: Text('회원 탈퇴'),
+                              ),
+                            ],
+                      ),
+                    ],
                   ),
                   ProfileTabBar(tabController: _tabController),
                 ];

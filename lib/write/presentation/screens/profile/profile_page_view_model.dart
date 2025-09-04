@@ -8,7 +8,7 @@ import 'package:flutter_sns/write/domain/repository/post_repository.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/get_user_profile_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/update_user_stats_usecase.dart';
 
-//State
+// State
 class ProfileState {
   final domain.User? user;
 
@@ -58,7 +58,7 @@ class ProfileState {
   }
 }
 
-//ViewModel
+// ViewModel
 class ProfileViewModel extends StateNotifier<ProfileState> {
   final GetUserProfileUseCase _getUserProfile;
   final UpdateUserStatsUseCase _updateUserStats;
@@ -73,9 +73,14 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
        _postRepository = postRepository,
        super(const ProfileState());
 
+  // ✅ 공통: 현재 로그인 UID 가져오기 (없으면 null 반환)
+  String? _getCurrentUidOrNull() {
+    return fa.FirebaseAuth.instance.currentUser?.uid;
+  }
+
   // 현재 로그인 사용자 로드
   Future<void> loadCurrentUser() async {
-    final uid = fa.FirebaseAuth.instance.currentUser?.uid;
+    final uid = _getCurrentUidOrNull();
     if (uid == null) {
       state = state.copyWith(errorMessage: '로그인이 필요합니다.');
       return;
@@ -85,6 +90,12 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
   /// 특정 UID 로드 (타 사용자 프로필 조회 시)
   Future<void> loadByUid(String uid) async {
+    final currentUid = _getCurrentUidOrNull();
+    if (currentUid == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
+
     try {
       state = state.copyWith(
         isLoading: true,
@@ -121,9 +132,13 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
   /// 사용자가 작성한 게시글을 불러옵니다.
   Future<void> loadUserPosts() async {
-    if (state.user == null) return;
+    final uid = _getCurrentUidOrNull();
+    if (uid == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
     try {
-      final posts = await _postRepository.getUserPosts(state.user!.uid);
+      final posts = await _postRepository.getUserPosts(uid);
       state = state.copyWith(userPosts: posts);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -132,11 +147,13 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
   /// 사용자가 좋아요를 누른 게시글을 불러옵니다.
   Future<void> loadUserLikedPosts() async {
-    if (state.user == null) return;
+    final uid = _getCurrentUidOrNull();
+    if (uid == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
     try {
-      final likedPosts = await _postRepository.getUserLikedPosts(
-        state.user!.uid,
-      );
+      final likedPosts = await _postRepository.getUserLikedPosts(uid);
       state = state.copyWith(userLikedPosts: likedPosts);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -145,9 +162,13 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
   /// 사용자가 댓글을 단 댓글을 불러옵니다.
   Future<void> loadUserComments() async {
-    if (state.user == null) return;
+    final uid = _getCurrentUidOrNull();
+    if (uid == null) {
+      state = state.copyWith(errorMessage: '로그인이 필요합니다.');
+      return;
+    }
     try {
-      final comments = await _postRepository.getUserComments(state.user!.uid);
+      final comments = await _postRepository.getUserComments(uid);
       final postTitles = <String, String>{};
 
       // 댓글 목록을 순회하며 각 댓글의 게시글 제목을 가져옴
