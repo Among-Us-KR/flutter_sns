@@ -61,9 +61,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       body: profileState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : profileState.errorMessage != null
-          ? Center(
-              child: Text('프로필을 불러오는데 실패했습니다: ${profileState.errorMessage}'),
-            )
+          ? Center(child: Text(profileState.errorMessage!))
           : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [

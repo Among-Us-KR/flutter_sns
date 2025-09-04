@@ -200,24 +200,37 @@ class PostRepositoryImpl implements PostRepository {
   Future<List<comments_domain.Comments>> getUserComments(String userId) async {
     try {
       final commentsData = await _postDataSource.getUserComments(userId);
-      // Firebase에서 가져온 Map 데이터를 Comments 엔티티로 변환합니다.
-      return commentsData
-          .map(
-            (data) => comments_domain.Comments(
+      final List<comments_domain.Comments> commentsList = [];
+
+      for (final data in commentsData) {
+        try {
+          // 각 댓글 데이터를 안전하게 파싱합니다.
+          commentsList.add(
+            comments_domain.Comments(
               id: data['id'] as String,
               postId: data['postId'] as String,
               authorId: data['authorId'] as String,
-              author: comments_domain.Author(
-                nickname: data['author']['nickname'] as String,
-                profileImageUrl: data['author']['profileImageUrl'] as String?,
-              ),
               content: data['content'] as String,
               createdAt: (data['createdAt'] as Timestamp).toDate(),
               updatedAt: (data['updatedAt'] as Timestamp).toDate(),
               reportCount: data['reportCount'] as int,
+              author: comments_domain.Author(
+                nickname:
+                    (data['author'] is Map &&
+                        data['author']['nickname'] != null)
+                    ? data['author']['nickname'] as String
+                    : '알 수 없음',
+                profileImageUrl: (data['author'] is Map)
+                    ? data['author']['profileImageUrl'] as String?
+                    : null,
+              ),
             ),
-          )
-          .toList();
+          );
+        } catch (e) {
+          print('손상된 댓글 데이터 파싱 실패, 건너뜁니다: $e');
+        }
+      }
+      return commentsList;
     } on FirebaseException catch (e) {
       if (e.code == 'not-found') {
         return [];

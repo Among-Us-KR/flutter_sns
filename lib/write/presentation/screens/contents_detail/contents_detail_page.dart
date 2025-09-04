@@ -2,12 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/utils/xss.dart';
 import 'package:flutter_sns/write/core/providers/providers.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comment_entity;
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/presentation/providers/post_detail_providers.dart';
+import 'package:flutter_sns/write/presentation/providers/post_interaction_providers.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_input.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_section_view.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/post_contents_view.dart';
@@ -30,16 +30,7 @@ class ContentsDetailPage extends ConsumerWidget {
         // 스크롤 시 앱바 색상이 변하는 것을 방지
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        // 데이터 로딩 상태에 따라 제목을 다르게 표시
-        title: postAsyncValue.when(
-          data: (post) => Text(
-            post.title,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          loading: () => const Text(''),
-          error: (_, __) => const Text('오류'),
-        ),
+        title: const Text(''), // 제목을 빈 텍스트로 변경하여 공간만 차지하도록 합니다.
         actions: [
           IconButton(
             icon: const Icon(Icons.more_horiz),
@@ -108,52 +99,87 @@ class ContentsDetailPage extends ConsumerWidget {
       backgroundColor: Colors.white,
       builder: (BuildContext bottomSheetContext) {
         final textTheme = Theme.of(context).textTheme;
+        final post = postAsyncValue.asData?.value;
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+        // 게시물 데이터가 아직 로드되지 않았을 경우
+        if (post == null) {
+          return const SafeArea(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('게시물 정보를 불러오는 중입니다...'),
+              ),
+            ),
+          );
+        }
+
+        final bool isAuthor = post.authorId == currentUserId;
+
         return SafeArea(
           child: Wrap(
             children: <Widget>[
-              ListTile(
-                title: Text(
-                  '편집하기',
-                  style: textTheme.bodyLarge?.copyWith(color: AppColors.brand),
+              // 작성자인 경우: 편집, 삭제 옵션 표시
+              if (isAuthor) ...[
+                ListTile(
+                  title: Text(
+                    '편집하기',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: AppColors.brand,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WritePage(postId: post.id),
+                      ),
+                    );
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-
-                  // AsyncValue에서 데이터를 안전하게 가져오기
-                  final post = postAsyncValue.asData?.value;
-
-                  if (post != null) {
-                    final currentUserId =
-                        FirebaseAuth.instance.currentUser?.uid;
-
-                    if (post.authorId == currentUserId) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WritePage(postId: post.id),
-                        ),
-                      );
-                    } else {
+                ListTile(
+                  title: Text('삭제하기', style: textTheme.bodyLarge),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _showDeleteConfirmationDialog(context, ref);
+                  },
+                ),
+              ]
+              // 작성자가 아닌 경우: 신고하기 옵션 표시
+              else ...[
+                ListTile(
+                  title: Text(
+                    '신고하기',
+                    style: textTheme.bodyLarge?.copyWith(color: Colors.red),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(bottomSheetContext);
+                    try {
+                      await ref
+                          .read(postInteractionServiceProvider)
+                          .reportPost(postId: post.id);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('자신이 작성한 게시글만 편집할 수 있습니다.'),
+                          content: Text('게시물이 신고되었습니다.'),
+                          backgroundColor: AppColors.brand,
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e.toString().contains('Exception: ')
+                                ? e.toString().split('Exception: ')[1]
+                                : '게시물이 신고되었습니다.',
+                          ),
+                          backgroundColor: Colors.red,
                         ),
                       );
                     }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('게시물 정보를 불러올 수 없습니다.')),
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                title: Text('삭제하기', style: textTheme.bodyLarge),
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  _showDeleteConfirmationDialog(context, ref);
-                },
-              ),
+                  },
+                ),
+              ],
             ],
           ),
         );

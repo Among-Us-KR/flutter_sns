@@ -67,7 +67,7 @@ class CommentTile extends StatelessWidget {
               Text(
                 comment.content,
                 style: AppTypography.style(
-                  AppTypography.s12,
+                  AppTypography.s16,
                   color: AppColors.n700,
                 ),
               ),

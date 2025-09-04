@@ -343,6 +343,16 @@ class WriteViewModel extends StateNotifier<WriteState> {
     state = state.copyWith(isPosting: true);
 
     try {
+      // 기존 게시물 정보를 불러와서 stats, createdAt 등을 유지합니다.
+      final originalPost = await _getPostUseCase.execute(state.postId!);
+      if (originalPost == null) {
+        state = state.copyWith(
+          isPosting: false,
+          errorMessage: "수정할 게시물을 찾을 수 없습니다.",
+        );
+        return;
+      }
+
       // Firestore에서 사용자의 닉네임과 프로필 이미지를 조회
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -368,10 +378,10 @@ class WriteViewModel extends StateNotifier<WriteState> {
         title: state.title.trim(),
         content: state.content.trim(),
         images: newImageUrls,
-        stats: PostStats(likesCount: 0, commentsCount: 0),
-        createdAt: DateTime.now(),
+        stats: originalPost.stats, // 기존 stats 유지
+        createdAt: originalPost.createdAt, // 생성일 유지
         updatedAt: DateTime.now(),
-        reportCount: 0,
+        reportCount: originalPost.reportCount, // 신고 횟수 유지
       );
 
       await _updatePostUseCase.execute(updatedPost, user.uid);
