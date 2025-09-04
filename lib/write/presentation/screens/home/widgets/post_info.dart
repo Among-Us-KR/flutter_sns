@@ -13,6 +13,8 @@ class PostInfo extends ConsumerWidget {
   final DateTime createdAt;
   final int commentCount;
   final String? profileImageUrl;
+  final String category;
+  final String mode;
 
   const PostInfo({
     super.key,
@@ -22,6 +24,8 @@ class PostInfo extends ConsumerWidget {
     required this.createdAt,
     required this.commentCount,
     this.profileImageUrl,
+    required this.category,
+    required this.mode,
   });
 
   String _formatTimeAgo(DateTime dateTime) {
@@ -43,6 +47,12 @@ class PostInfo extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const whiteColor = Colors.white;
     final commentsCountAsync = ref.watch(commentsCountProvider(postId));
+
+    // 실제 태그 데이터를 기반으로 태그 목록을 생성합니다.
+    final tags = [
+      category,
+      mode == 'punch' ? '팩폭해줘' : '공감해줘',
+    ].where((tag) => tag.isNotEmpty).toList();
 
     // GestureDetector로 감싸서 탭 이벤트를 감지하고, 탭하면 게시물 상세 페이지로 이동
     return GestureDetector(
@@ -97,10 +107,16 @@ class PostInfo extends ConsumerWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                // TODO: 실제 태그 데이터 표시
-                Text('#대박스', style: AppTypography.labelXS(whiteColor)),
-                const SizedBox(width: 8),
-                Text('#공감해줘', style: AppTypography.labelXS(whiteColor)),
+                // 동적으로 태그 위젯들을 생성합니다.
+                ...tags.map(
+                  (tag) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(
+                      '#$tag',
+                      style: AppTypography.labelXS(whiteColor),
+                    ),
+                  ),
+                ),
                 const Spacer(),
                 commentsCountAsync.when(
                   data: (count) => Text(
