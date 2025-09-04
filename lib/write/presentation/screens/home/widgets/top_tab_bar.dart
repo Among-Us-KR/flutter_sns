@@ -1,64 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/theme/theme.dart';
-import 'package:flutter_sns/write/presentation/screens/home/widgets/no_glow_scroll_behavior.dart';
+import 'package:flutter_sns/write/domain/entities/category.dart';
+import 'package:flutter_sns/write/presentation/screens/home/home_page.dart';
 
-class TopTabBar extends StatefulWidget {
+class TopTabBar extends ConsumerWidget {
   const TopTabBar({super.key});
 
   @override
-  State<TopTabBar> createState() => _TopTabBarState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 현재 선택된 카테고리와 카테고리 목록
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final categories = Category.values;
 
-class _TopTabBarState extends State<TopTabBar> {
-  int _selectedIndex = 0;
-  final List<String> _tabs = ['전체', '멍청스', '고민스', '대박스', '행복'];
+    return SizedBox(
+      height: 48,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = category == selectedCategory;
 
-  Widget _buildTab(int index) {
-    bool isSelected = _selectedIndex == index;
-    final textStyle = AppTypography.h3(
-      isSelected ? AppColors.n900 : AppColors.n600,
-    );
-
-    return InkWell(
-      onTap: () {
-        // TODO: 탭 변경 시 실제 피드 필터링 로직 연동
-        setState(() => _selectedIndex = index);
-      },
-      borderRadius: BorderRadius.circular(8.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(_tabs[index], style: textStyle),
-          const SizedBox(height: 8),
-          Container(
-            height: 2,
-            width: 40,
-            color: isSelected ? AppColors.brand : Colors.transparent,
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: ScrollConfiguration(
-        behavior: NoGlowScrollBehavior(),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-          child: Row(
-            children: List.generate(
-              _tabs.length,
-              (index) => Padding(
-                padding: const EdgeInsets.only(right: 18.0),
-                child: _buildTab(index),
+          return GestureDetector(
+            onTap: () {
+              // 탭을 누르면 선택된 카테고리 상태를 업데이트
+              ref.read(selectedCategoryProvider.notifier).state = category;
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.brand : AppColors.n100,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                category.displayName,
+                // AppTypography.s14는 TextStyle이 아닌 double(숫자) 타입이므로,
+                // .copyWith를 직접 사용할 수 없습니다.
+                // 다른 위젯에서 사용하는 AppTypography.style 헬퍼 메서드를 사용하도록 수정합니다.
+                style: AppTypography.style(
+                  AppTypography.s14,
+                  weight: isSelected
+                      ? AppTypography.bold
+                      : AppTypography.regular,
+                  color: isSelected ? Colors.white : AppColors.n800,
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

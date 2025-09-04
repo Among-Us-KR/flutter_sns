@@ -52,6 +52,8 @@ class PostView extends StatelessWidget {
             caption: post.content,
             createdAt: post.createdAt,
             commentCount: post.stats.commentsCount,
+            category: post.category,
+            mode: post.mode,
             profileImageUrl: post.author.profileImageUrl,
           ),
         ),
