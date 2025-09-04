@@ -11,7 +11,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
   const ProfileSliverAppBar({super.key, this.actions});
 
   static const double _statsOverflow = 80;
-  static const double _headerHeight = 280;
+  static const double _headerHeight = 230;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,13 +26,13 @@ class ProfileSliverAppBar extends ConsumerWidget {
       pinned: true,
       elevation: 0,
       backgroundColor: cs.surface,
-      expandedHeight: appBarH + _headerHeight + (_statsOverflow * 0.4),
+      expandedHeight: appBarH + _headerHeight * 0.9,
       actions: actions, // ✅ actions 매개변수 추가
       flexibleSpace: userProfileAsync.when(
         data: (user) {
           return LayoutBuilder(
             builder: (context, constraints) {
-              final minH = appBarH;
+              final minH = appBarH * 0.3;
               final maxH = appBarH + _headerHeight + (_statsOverflow * 0.4);
               final h = constraints.maxHeight.clamp(minH, maxH);
               final t = ((h - minH) / (maxH - minH)).clamp(0.0, 1.0);
@@ -88,47 +88,47 @@ class ProfileSliverAppBar extends ConsumerWidget {
             child: ProfileHeader(user: user),
           ),
         ),
-        // 통계 카드 영역 (헤더에 겹치도록 배치)
-        Positioned(
-          top: appBarH + _headerHeight - (_statsOverflow * 0.8),
-          left: 0,
-          right: 0,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            // 하얀색 배경 및 그림자 제거
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                // 배경색과 그림자 제거
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: StatsItem(
-                      count: user.stats.postsCount,
-                      label: '던진 글',
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: StatsItem(
-                      count: user.stats.likesReceived,
-                      label: '받은 공감',
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: StatsItem(
-                      count: user.stats.commentsReceived,
-                      label: '받은 댓글',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        // // 통계 카드 영역 (헤더에 겹치도록 배치)
+        // Positioned(
+        //   top: appBarH + _headerHeight - (_statsOverflow * 0.8),
+        //   left: 0,
+        //   right: 0,
+        //   child: Padding(
+        //     padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        //     // 하얀색 배경 및 그림자 제거
+        //     child: Container(
+        //       padding: const EdgeInsets.all(20),
+        //       decoration: BoxDecoration(
+        //         // 배경색과 그림자 제거
+        //         borderRadius: BorderRadius.circular(12),
+        //       ),
+        //       child: Row(
+        //         children: [
+        //           Expanded(
+        //             child: StatsItem(
+        //               count: user.stats.postsCount,
+        //               label: '작성글',
+        //             ),
+        //           ),
+        //           const SizedBox(width: 7),
+        //           Expanded(
+        //             child: StatsItem(
+        //               count: user.stats.likesCount,
+        //               label: '좋아요',
+        //             ),
+        //           ),
+        //           const SizedBox(width: 7),
+        //           Expanded(
+        //             child: StatsItem(
+        //               count: user.stats.commentsCount,
+        //               label: '댓글',
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     ),
+        //   ),
+        // ),
         // 상단 AppBar 영역 (가장 위로 배치)
         Positioned(
           top: 0,
@@ -189,18 +189,18 @@ class ProfileSliverAppBar extends ConsumerWidget {
                       label: '글',
                       value: user.stats.postsCount,
                     ),
-                    const StatDot(),
-                    StatInline(
-                      theme: theme,
-                      label: '받은 공감',
-                      value: user.stats.likesReceived,
-                    ),
-                    const StatDot(),
-                    StatInline(
-                      theme: theme,
-                      label: '받은 댓글',
-                      value: user.stats.commentsReceived,
-                    ),
+                    // const StatDot(),
+                    // StatInline(
+                    //   theme: theme,
+                    //   label: '받은 공감',
+                    //   value: user.stats.likesReceived,
+                    // ),
+                    // const StatDot(),
+                    // StatInline(
+                    //   theme: theme,
+                    //   label: '받은 댓글',
+                    //   value: user.stats.commentsReceived,
+                    // ),
                   ],
                 ),
               ],

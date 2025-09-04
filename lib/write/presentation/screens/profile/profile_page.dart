@@ -6,14 +6,13 @@ import 'package:flutter_sns/write/core/services/account_service.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comments_domain;
-import 'package:flutter_sns/write/presentation/screens/profile/profile_page_view_model.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/tab_list/comment_card.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/tab_list/post_card.dart';
 import 'package:flutter_sns/write/presentation/screens/profile/tab_list/tab_list_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'widgets/profile_sliver_app_bar.dart';
 import 'widgets/profile_tab_bar.dart';
+import 'tab_list/post_card.dart';
+import 'tab_list/comment_card.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -36,6 +35,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshAll();
+    });
   }
 
   @override
@@ -47,7 +49,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   // 당겨서 새로고침/탭 진입 갱신 공용 함수
   Future<void> _refreshAll() async {
     final vm = ref.read(profileViewModelProvider(null).notifier);
-    // 뷰모델의 로드 함수들이 Future를 반환한다고 가정
+    // 프로필 로드 후 각 리스트를 로드하도록 순서를 보장합니다.
+    await vm.loadCurrentUser();
     await Future.wait([
       vm.loadUserPosts(),
       vm.loadUserLikedPosts(),
@@ -64,15 +67,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     // 상태 watch
     final profileState = ref.watch(profileViewModelProvider(null));
 
-    // ✅ user가 로드되면 컨텐츠 로드
-    ref.listen<ProfileState>(profileViewModelProvider(null), (previous, next) {
-      if (previous?.user == null && next.user != null) {
-        viewModel.loadUserPosts();
-        viewModel.loadUserLikedPosts();
-        viewModel.loadUserComments();
-      }
-    });
-
     return Scaffold(
       backgroundColor: cs.surface,
 
@@ -85,9 +79,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ? ListView(
                 // RefreshIndicator는 스크롤러 필요
                 children: [
-                  const SizedBox(height: 240),
+                  const SizedBox(height: 60),
                   const Center(child: CircularProgressIndicator()),
-                  const SizedBox(height: 240),
+                  const SizedBox(height: 60),
                 ],
               )
             : profileState.errorMessage != null
@@ -304,26 +298,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       onRefresh: _refreshAll,
                     ),
 
-                    // 내가 댓글 단 글
-                    TabListView<comments_domain.Comments>(
-                      items: profileState.userComments.values.toList(),
-                      emptyMessage: '아직 작성한 댓글이 없어요\n다른 사람의 글에 공감이나 팩폭을 남겨보세요!',
-                      emptyIcon: Icons.chat_bubble_outline,
-                      itemBuilder: (comment) => CommentCard(
-                        comment: comment,
-                        postTitle:
-                            profileState.userCommentedPostTitles[comment.id] ??
-                            '게시글 제목을 불러올 수 없습니다',
-                        onTap: () {
-                          // 🔧 라우트 이름 수정: 'post' → 'post_detail'
-                          context.pushNamed(
-                            'post_detail',
-                            pathParameters: {'postId': comment.postId},
-                          );
-                        },
-                      ),
-                      onRefresh: _refreshAll,
-                    ),
+                    // // 내가 댓글 단 글
+                    // TabListView<comments_domain.Comments>(
+                    //   items: profileState.userComments.values.toList(),
+                    //   emptyMessage: '아직 작성한 댓글이 없어요\n다른 사람의 글에 공감이나 팩폭을 남겨보세요!',
+                    //   emptyIcon: Icons.chat_bubble_outline,
+                    //   itemBuilder: (comment) => CommentCard(
+                    //     comment: comment,
+                    //     postTitle:
+                    //         profileState.userCommentedPostTitles[comment.id] ??
+                    //         '게시글 제목을 불러올 수 없습니다',
+                    //     onTap: () {
+                    //       // 🔧 라우트 이름 수정: 'post' → 'post_detail'
+                    //       context.pushNamed(
+                    //         'post_detail',
+                    //         pathParameters: {'postId': comment.postId},
+                    //       );
+                    //     },
+                    //   ),
+                    //   onRefresh: _refreshAll,
+                    // ),
 
                     // 내가 좋아요 누른 글
                     TabListView<Posts>(
