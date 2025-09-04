@@ -1,11 +1,7 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sns/write/data/datasources/firebase_storage_datasource.dart';
-import 'package:flutter_sns/write/data/datasources/user_datasource.dart';
-import 'package:flutter_sns/write/data/repository/users_repository_impl.dart';
 import 'package:flutter_sns/write/domain/entities/users.dart' as domain;
-import 'package:flutter_sns/write/domain/repository/users_repository.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/check_nickname_duplicate_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/get_user_profile_usecase.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/update_user_profile_usecase.dart';
@@ -289,81 +285,3 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
     );
   }
 }
-
-// Providers
-
-// DataSource Providers
-final userDatasourceProvider = Provider<UserDatasource>((ref) {
-  return FirebaseUserDatasource();
-});
-
-final firebaseStorageDataSourceProvider = Provider<FirebaseStorageDataSource>((
-  ref,
-) {
-  return FirebaseStorageDataSource();
-});
-
-// UserRepository Provider 수정 (기존의 throw 구문을 교체)
-final userRepositoryProvider = Provider<UserRepository>((ref) {
-  final userDs = ref.watch(userDatasourceProvider);
-  final storageDs = ref.watch(firebaseStorageDataSourceProvider);
-  return UserRepositoryImpl(userDs, storageDs);
-});
-
-final getUserProfileUseCaseProvider = Provider<GetUserProfileUseCase>((ref) {
-  final repo = ref.watch(userRepositoryProvider);
-  return GetUserProfileUseCase(repo);
-});
-
-final updateUserProfileUseCaseProvider = Provider<UpdateUserProfileUseCase>((
-  ref,
-) {
-  final repo = ref.watch(userRepositoryProvider);
-  return UpdateUserProfileUseCase(repo);
-});
-
-final updateUserStatsUseCaseProvider = Provider<UpdateUserStatsUseCase>((ref) {
-  final repo = ref.watch(userRepositoryProvider);
-  return UpdateUserStatsUseCase(repo);
-});
-
-final uploadProfileImageUseCaseProvider = Provider<UploadProfileImageUseCase>((
-  ref,
-) {
-  final repo = ref.watch(userRepositoryProvider);
-  return UploadProfileImageUseCase(repo);
-});
-
-final checkNicknameDuplicateUseCaseProvider =
-    Provider<CheckNicknameDuplicateUseCase>((ref) {
-      final repo = ref.watch(userRepositoryProvider);
-      return CheckNicknameDuplicateUseCase(repo);
-    });
-
-// 프로필 VM (family: 다른 유저 uid로도 조회 가능)
-// uid가 null이면 현재 로그인 사용자를 로드하도록 편의 제공
-final profileViewModelProvider =
-    StateNotifierProvider.family<ProfileViewModel, ProfileState, String?>((
-      ref,
-      uid,
-    ) {
-      final vm = ProfileViewModel(
-        getUserProfile: ref.watch(getUserProfileUseCaseProvider),
-        updateUserProfile: ref.watch(updateUserProfileUseCaseProvider),
-        updateUserStats: ref.watch(updateUserStatsUseCaseProvider),
-        uploadProfileImage: ref.watch(uploadProfileImageUseCaseProvider),
-        checkNicknameDuplicate: ref.watch(
-          checkNicknameDuplicateUseCaseProvider,
-        ),
-      );
-
-      // 초기 로드
-      if (uid == null) {
-        // 현재 로그인 사용자
-        Future.microtask(() => vm.loadCurrentUser());
-      } else {
-        Future.microtask(() => vm.loadByUid(uid));
-      }
-
-      return vm;
-    });

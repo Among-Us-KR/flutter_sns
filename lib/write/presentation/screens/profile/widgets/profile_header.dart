@@ -1,76 +1,15 @@
-// widgets/profile_header.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sns/write/presentation/screens/profile/profile_page_view_model.dart';
+import 'package:flutter_sns/write/domain/entities/users.dart' as domain;
 
-class ProfileHeader extends ConsumerWidget {
-  const ProfileHeader({super.key});
+class ProfileHeader extends StatelessWidget {
+  final domain.User user;
+
+  const ProfileHeader({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    // ProfileViewModel에서 현재 사용자 정보 가져오기 (null = 현재 사용자)
-    final profileState = ref.watch(profileViewModelProvider(null));
-
-    // 로딩 중일 때
-    if (profileState.isLoading) {
-      return Column(
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: colorScheme.primary, width: 4),
-              color: colorScheme.surfaceContainerHigh,
-            ),
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: 100,
-            height: 20,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // 사용자 정보가 없을 때
-    if (profileState.user == null) {
-      return Column(
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: colorScheme.primary, width: 4),
-              color: colorScheme.surfaceContainerHigh,
-            ),
-            child: Icon(
-              Icons.person,
-              size: 60,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '사용자 정보 없음',
-            style: theme.textTheme.headlineLarge?.copyWith(
-              color: colorScheme.onSecondary,
-            ),
-          ),
-        ],
-      );
-    }
-
-    final user = profileState.user!;
 
     return Column(
       children: [

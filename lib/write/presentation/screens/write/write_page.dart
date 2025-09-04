@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sns/write/core/providers/write_page_provider.dart';
+import 'package:flutter_sns/write/core/providers/providers.dart';
 import 'package:flutter_sns/write/core/services/message_service.dart';
 import 'package:flutter_sns/write/domain/entities/category.dart';
 import 'package:flutter_sns/write/domain/entities/write_mode.dart';
