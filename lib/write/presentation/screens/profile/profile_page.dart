@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sns/write/core/providers/providers.dart';
+import 'package:flutter_sns/write/core/services/account_service.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/comments.dart'
     as comments_domain;
@@ -43,11 +44,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     final cs = theme.colorScheme;
     final viewModel = ref.read(profileViewModelProvider(null).notifier);
 
-    // 뷰모델 상태를 watch
+    // 뷰모델 상태 watch
     final profileState = ref.watch(profileViewModelProvider(null));
 
-    // ✅ 위젯 빌드가 완료된 후에 데이터 로드 함수를 호출하도록 수정
-    // 이 방법은 "Tried to modify a provider while the widget tree was building" 오류를 해결합니다.
+    // ✅ 빌드 이후 데이터 로드
     ref.listen<ProfileState>(profileViewModelProvider(null), (previous, next) {
       if (previous?.user == null && next.user != null) {
         viewModel.loadUserPosts();
@@ -79,16 +79,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                               // Firebase 로그아웃
                               await FirebaseAuth.instance.signOut();
 
-                              // Google 로그아웃 (필요하다면)
+                              // Google 로그아웃 (필요 시)
                               final googleSignIn = GoogleSignIn();
                               await googleSignIn.signOut();
                               await googleSignIn.disconnect();
 
                               if (context.mounted) {
-                                // 라우팅만 처리 (SnackBar는 생략하거나 login 페이지에서 띄우는 게 안정적)
-                                ref.invalidate(
-                                  profileViewModelProvider(null),
-                                ); // 상태 초기화
+                                // 상태 초기화 + 로그인으로 이동
+                                ref.invalidate(profileViewModelProvider(null));
                                 context.goNamed('login');
                               }
                             } catch (e) {
@@ -99,7 +97,135 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                               }
                             }
                           } else if (result == 'delete_account') {
-                            // TODO: 회원 탈퇴 기능 구현
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              barrierDismissible: !false,
+                              builder: (context) {
+                                bool isLoading = false;
+
+                                return StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      title: Row(
+                                        children: const [
+                                          Icon(
+                                            Icons.warning_amber_rounded,
+                                            color: Colors.red,
+                                            size: 28,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '회원 탈퇴',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      content: const Text(
+                                        '정말 탈퇴하시겠습니까?\n\n'
+                                        '회원님의 모든 데이터(프로필, 게시글, 댓글, 좋아요, 업로드한 이미지)가 '
+                                        '영구적으로 삭제되며 복구할 수 없습니다.',
+                                        style: TextStyle(height: 1.4),
+                                      ),
+                                      actionsAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
+                                          child: const Text('취소'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          onPressed: isLoading
+                                              ? null
+                                              : () async {
+                                                  setState(
+                                                    () => isLoading = true,
+                                                  );
+                                                  try {
+                                                    // 서버 회원탈퇴 호출
+                                                    final msg =
+                                                        await AccountService.deleteAccount(
+                                                          context,
+                                                        );
+
+                                                    if (!context.mounted)
+                                                      return;
+
+                                                    // 다이얼로그 닫으며 성공 신호 전달
+                                                    Navigator.of(
+                                                      context,
+                                                    ).pop(true);
+
+                                                    // 다이얼로그 닫힌 뒤 스낵바 + 라우팅은 아래에서 처리
+                                                    // (confirm == true 분기에서)
+                                                  } catch (e) {
+                                                    if (!context.mounted)
+                                                      return;
+                                                    // 실패 시 다이얼로그 내에서 토스트/스낵바 안내
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          '회원 탈퇴 실패: $e',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  } finally {
+                                                    if (context.mounted) {
+                                                      setState(
+                                                        () => isLoading = false,
+                                                      );
+                                                    }
+                                                  }
+                                                },
+                                          child: isLoading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Text('탈퇴하기'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                            );
+
+                            // ✅ 다이얼로그에서 성공(true)로 닫힌 경우: 스낵바 → 로그인 이동
+                            if (confirm == true && context.mounted) {
+                              // 뷰모델/프로바이더 상태 초기화(선택)
+                              ref.invalidate(profileViewModelProvider(null));
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('회원 탈퇴가 완료되었습니다.'),
+                                ),
+                              );
+
+                              // 로그인 화면으로 이동
+                              context.goNamed('login');
+                            }
                           }
                         },
                         itemBuilder: (BuildContext context) =>
@@ -131,25 +257,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     items: profileState.userPosts,
                     emptyMessage: '아직 작성한 글이 없어요\n첫 번째 글을 던져보세요!',
                     emptyIcon: Icons.edit_note,
-                    itemBuilder: (post) => PostCard(
-                      // PostCard 위젯에 Posts 객체를 직접 전달
-                      post: post,
-                    ),
+                    itemBuilder: (post) => PostCard(post: post),
                   ),
 
-                  // 내가 댓글 단 글 목록 (CommentCard 사용)
+                  // 내가 댓글 단 글 목록
                   TabListView<comments_domain.Comments>(
                     items: profileState.userComments.values.toList(),
                     emptyMessage: '아직 작성한 댓글이 없어요\n다른 사람의 글에 공감이나 팩폭을 남겨보세요!',
                     emptyIcon: Icons.chat_bubble_outline,
                     itemBuilder: (comment) => CommentCard(
-                      // CommentCard 위젯에 Comments 객체를 직접 전달
                       comment: comment,
                       postTitle:
                           profileState.userCommentedPostTitles[comment.id] ??
                           '게시글 제목을 불러올 수 없습니다',
                       onTap: () {
-                        // 댓글을 누르면 해당 게시글로 이동하도록 로직 추가
                         context.pushNamed(
                           'post',
                           pathParameters: {'postId': comment.postId},
@@ -157,15 +278,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       },
                     ),
                   ),
+
                   // 내가 좋아요 누른 글 목록
                   TabListView<Posts>(
                     items: profileState.userLikedPosts,
                     emptyMessage: '아직 공감한 글이 없어요\n마음에 드는 글에 공감을 눌러보세요!',
                     emptyIcon: Icons.favorite_outline,
-                    itemBuilder: (post) => PostCard(
-                      // PostCard 위젯에 Posts 객체를 직접 전달
-                      post: post,
-                    ),
+                    itemBuilder: (post) => PostCard(post: post),
                   ),
                 ],
               ),
