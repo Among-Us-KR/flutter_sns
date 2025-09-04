@@ -14,10 +14,13 @@ class ProfileState {
 
   // 내가 쓴 글, 좋아요 누른 글 목록
   final List<Posts> userPosts;
+  final bool userPostsLoading;
   final List<Posts> userLikedPosts;
+  final bool userLikedPostsLoading;
   // '내가 댓글 단 글' 목록을 댓글 엔티티로 변경
   final Map<String, comments_domain.Comments> userComments;
   final Map<String, String> userCommentedPostTitles;
+  final bool userCommentsLoading;
 
   final bool isLoading;
   final String? errorMessage;
@@ -26,9 +29,12 @@ class ProfileState {
   const ProfileState({
     this.user,
     this.userPosts = const [],
+    this.userPostsLoading = true,
     this.userLikedPosts = const [],
+    this.userLikedPostsLoading = true,
     this.userComments = const {},
     this.userCommentedPostTitles = const {},
+    this.userCommentsLoading = true,
     this.isLoading = false,
     this.errorMessage,
     this.successMessage,
@@ -37,9 +43,12 @@ class ProfileState {
   ProfileState copyWith({
     domain.User? user,
     List<Posts>? userPosts,
+    bool? userPostsLoading,
     List<Posts>? userLikedPosts,
+    bool? userLikedPostsLoading,
     Map<String, comments_domain.Comments>? userComments,
     Map<String, String>? userCommentedPostTitles,
+    bool? userCommentsLoading,
     bool? isLoading,
     String? errorMessage,
     String? successMessage,
@@ -47,10 +56,14 @@ class ProfileState {
     return ProfileState(
       user: user ?? this.user,
       userPosts: userPosts ?? this.userPosts,
+      userPostsLoading: userPostsLoading ?? this.userPostsLoading,
       userLikedPosts: userLikedPosts ?? this.userLikedPosts,
+      userLikedPostsLoading:
+          userLikedPostsLoading ?? this.userLikedPostsLoading,
       userComments: userComments ?? this.userComments,
       userCommentedPostTitles:
           userCommentedPostTitles ?? this.userCommentedPostTitles,
+      userCommentsLoading: userCommentsLoading ?? this.userCommentsLoading,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       successMessage: successMessage,
@@ -178,10 +191,14 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
   Future<void> loadUserPosts() async {
     if (state.user == null) return;
     try {
+      state = state.copyWith(userPostsLoading: true);
       final posts = await _postRepository.getUserPosts(state.user!.uid);
-      state = state.copyWith(userPosts: posts);
+      state = state.copyWith(userPosts: posts, userPostsLoading: false);
     } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(
+        userPostsLoading: false,
+        errorMessage: e.toString(),
+      );
     }
   }
 
@@ -189,38 +206,43 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
   Future<void> loadUserLikedPosts() async {
     if (state.user == null) return;
     try {
+      state = state.copyWith(userLikedPostsLoading: true);
       final likedPosts = await _postRepository.getUserLikedPosts(
         state.user!.uid,
       );
-      state = state.copyWith(userLikedPosts: likedPosts);
+      state = state.copyWith(
+        userLikedPosts: likedPosts,
+        userLikedPostsLoading: false,
+      );
     } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(
+        userLikedPostsLoading: false,
+        errorMessage: e.toString(),
+      );
     }
   }
 
   /// 사용자가 댓글을 단 댓글을 불러옵니다.
   Future<void> loadUserComments() async {
     if (state.user == null) return;
+    state = state.copyWith(userCommentsLoading: true, errorMessage: null);
+
     try {
-      final comments = await _postRepository.getUserComments(state.user!.uid);
-      final postTitles = <String, String>{};
-
-      // 댓글 목록을 순회하며 각 댓글의 게시글 제목을 가져옴
-      for (final comment in comments) {
-        final post = await _postRepository.getPostById(comment.postId);
-        if (post != null) {
-          postTitles[comment.id] = post.title;
-        }
-      }
-
-      // 댓글 목록과 게시글 제목을 함께 상태에 저장
-      final commentsMap = {for (var item in comments) item.id: item};
-      state = state.copyWith(
-        userComments: commentsMap,
-        userCommentedPostTitles: postTitles,
+      final commentsData = await _loadUserCommentsAndPostTitles(
+        state.user!.uid,
       );
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+
+      state = state.copyWith(
+        userCommentsLoading: false,
+        userComments: commentsData['comments'],
+        userCommentedPostTitles: commentsData['titles'],
+      );
+    } catch (e, st) {
+      print('댓글 로딩 중 오류 발생: $e\n$st');
+      state = state.copyWith(
+        userCommentsLoading: false,
+        errorMessage: '댓글을 불러오는 데 실패했습니다.',
+      );
     }
   }
 
