@@ -15,7 +15,12 @@ class PostView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ImagePageView(imagePaths: post.images),
+        // ImagePageView(imagePaths: post.images),
+        ImagePageView(
+          imagePaths: post.images,
+          fit: BoxFit.contain, // contain으로 변경하여 이미지 전체가 보이도록 함
+        ),
+
         // 이미지 위에 UI를 올리기 위한 그래디언트 오버레이
         // IgnorePointer를 사용하여 이 위젯이 터치 이벤트를 가로채지 않도록 함
         IgnorePointer(
@@ -36,7 +41,7 @@ class PostView extends StatelessWidget {
         // UI 컴포넌트 (좋아요 버튼, 정보)
         Positioned(
           right: 16,
-          bottom: 160,
+          bottom: 140,
           child: LikeButton(
             postId: post.id,
             initialLikeCount: post.stats.likesCount,
