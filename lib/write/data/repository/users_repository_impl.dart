@@ -33,8 +33,9 @@ class UserRepositoryImpl implements UserRepository {
       stats: domain.UserStats(
         postsCount: m.stats.postsCount,
         commentsCount: m.stats.commentsCount,
-        empathyReceived: m.stats.empathyReceived,
-        punchReceived: m.stats.punchReceived,
+        likesCount: m.stats.likesCount,
+        commentsReceived: m.stats.commentsReceived,
+        likesReceived: m.stats.likesReceived,
       ),
       pushNotifications: m.pushNotifications,
       createdAt: m.createdAt,
@@ -49,7 +50,6 @@ class UserRepositoryImpl implements UserRepository {
       uid: u.uid,
       email: u.email,
       nickname: u.nickname,
-
       profileImageUrl: u.profileImageUrl,
       privacyConsent: dto.PrivacyConsent(
         agreedAt: u.privacyConsent.agreedAt,
@@ -59,17 +59,16 @@ class UserRepositoryImpl implements UserRepository {
       stats: dto.UserStats(
         postsCount: u.stats.postsCount,
         commentsCount: u.stats.commentsCount,
-        empathyReceived: u.stats.empathyReceived,
-        punchReceived: u.stats.punchReceived,
+        likesCount: u.stats.likesCount,
+        // DTO 필드와 일치하도록 명확하게 변환
+        commentsReceived: u.stats.commentsReceived,
+        likesReceived: u.stats.likesReceived,
       ),
       pushNotifications: u.pushNotifications,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       reportCount: u.reportCount,
     );
-
-    final data = m.toJson();
-
     await _ds.updateUserProfile(m);
   }
 
@@ -78,8 +77,10 @@ class UserRepositoryImpl implements UserRepository {
     final stats = dto.UserStats(
       postsCount: s.postsCount,
       commentsCount: s.commentsCount,
-      empathyReceived: s.empathyReceived,
-      punchReceived: s.punchReceived,
+      likesCount: s.likesCount,
+      // DTO 필드와 일치하도록 명확하게 변환
+      commentsReceived: s.commentsReceived,
+      likesReceived: s.likesReceived,
     );
     await _ds.updateUserStats(uid, stats);
   }
@@ -92,7 +93,6 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<bool> isNicknameDuplicate(String nickname) async {
-    // Use the `NicknamePolicy` to normalize the nickname before checking.
     final lowerNickname = NicknamePolicy.normalizedLower(nickname);
     return _ds.existsNicknameLower(lowerNickname);
   }
@@ -105,37 +105,41 @@ class UserRepositoryImpl implements UserRepository {
   }) async {
     final batch = _firestore.batch();
 
-    // 1. 게시글 업데이트
     final postCollection = _firestore.collection('posts');
-    // 'userId' 대신 'authorId'로 쿼리
     final userPostsQuery = await postCollection
         .where('authorId', isEqualTo: uid)
         .get();
     for (var doc in userPostsQuery.docs) {
       batch.update(doc.reference, {
-        // 'user.nickname' 대신 'author.nickname' 사용
         'author.nickname': newNickname,
-        // 'user.profileImageUrl' 대신 'author.profileImageUrl' 사용
         'author.profileImageUrl': newProfileImageUrl,
       });
     }
 
-    // 2. 댓글 업데이트
     final commentsCollection = _firestore.collection('comments');
-    // 'userId'로 쿼리 (이 부분은 올바릅니다)
     final userCommentsQuery = await commentsCollection
         .where('userId', isEqualTo: uid)
         .get();
     for (var doc in userCommentsQuery.docs) {
       batch.update(doc.reference, {
-        // 'user.nickname' 대신 'author.nickname' 사용
         'author.nickname': newNickname,
-        // 'user.profileImageUrl' 대신 'author.profileImageUrl' 사용
         'author.profileImageUrl': newProfileImageUrl,
       });
     }
 
-    // 3. 커밋
     await batch.commit();
+  }
+
+  @override
+  Stream<domain.UserStats> getUserStatsStream(String uid) {
+    return _ds.getUserStatsStream(uid).map((dtoStats) {
+      return domain.UserStats(
+        postsCount: dtoStats.postsCount,
+        likesCount: dtoStats.likesCount,
+        commentsCount: dtoStats.commentsCount,
+        commentsReceived: dtoStats.commentsReceived,
+        likesReceived: dtoStats.likesReceived,
+      );
+    });
   }
 }

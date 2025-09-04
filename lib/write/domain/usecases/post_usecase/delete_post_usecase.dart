@@ -8,31 +8,20 @@ class DeletePostUseCase {
 
   /// 권한 검사가 포함된 삭제
   Future<void> execute(String postId, String currentUserId) async {
-    // 입력값 검증
-    if (postId.trim().isEmpty) {
-      throw Exception('삭제할 게시글 ID가 올바르지 않습니다.');
-    }
-
-    if (currentUserId.trim().isEmpty) {
-      throw Exception('사용자 정보가 올바르지 않습니다.');
-    }
-
-    // 1. 게시글 조회하여 존재 여부 확인
+    // 1. 게시글 조회하여 존재 여부 및 작성자 권한 확인
     final post = await _repository.getPostById(postId);
+
+    // post가 null인 경우, 게시글이 없다는 예외를 발생시킵니다.
     if (post == null) {
-      throw Exception('존재하지 않는 게시글입니다.');
+      throw Exception('게시글을 찾을 수 없습니다.');
     }
 
-    // 2. 작성자 권한 확인
+    // 이 검사는 클라이언트에서 한 번 더 확인하는 것이지만,
     if (post.authorId != currentUserId) {
       throw Exception('자신이 작성한 게시글만 삭제할 수 있습니다.');
     }
 
-    // 3. 권한 확인 완료 후 삭제 실행
+    // 2. 권한 확인 완료 후, Repository에 삭제를 요청합니다.
     await _repository.deletePost(postId);
-
-    // 4. 사용자 게시글 수 감소
-    // post.authorId를 사용하여 통계를 업데이트합니다.
-    await _repository.decrementUserPostsCount(post.authorId);
   }
 }
