@@ -6,9 +6,9 @@ import 'package:flutter_sns/write/presentation/screens/profile/widgets/profile_h
 import 'package:flutter_sns/write/presentation/screens/profile/widgets/stats_item.dart';
 
 class ProfileSliverAppBar extends ConsumerWidget {
-  final VoidCallback onEditPressed;
+  final List<Widget>? actions;
 
-  const ProfileSliverAppBar({super.key, required this.onEditPressed});
+  const ProfileSliverAppBar({super.key, this.actions});
 
   static const double _statsOverflow = 80;
   static const double _headerHeight = 280;
@@ -27,6 +27,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
       elevation: 0,
       backgroundColor: cs.surface,
       expandedHeight: appBarH + _headerHeight + (_statsOverflow * 0.4),
+      actions: actions, // ✅ actions 매개변수 추가
       flexibleSpace: userProfileAsync.when(
         data: (user) {
           return LayoutBuilder(
@@ -141,24 +142,7 @@ class ProfileSliverAppBar extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('프로필', style: theme.textTheme.headlineLarge),
-                ElevatedButton(
-                  onPressed: onEditPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.secondary,
-                    foregroundColor: cs.onSecondary,
-                    minimumSize: const Size(41, 30),
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                  ),
-                  child: Text(
-                    '수정',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: cs.onSecondary,
-                    ),
-                  ),
-                ),
+                // 여기에서 버튼을 제거했습니다.
               ],
             ),
           ),
@@ -220,25 +204,6 @@ class ProfileSliverAppBar extends ConsumerWidget {
                   ],
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: onEditPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: cs.secondary,
-              foregroundColor: cs.onSecondary,
-              minimumSize: const Size(41, 30),
-              padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
-            ),
-            child: Text(
-              '수정',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: cs.onSecondary,
-              ),
             ),
           ),
         ],

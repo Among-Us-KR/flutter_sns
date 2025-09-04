@@ -12,25 +12,28 @@ import 'package:flutter_sns/write/presentation/widgets/splash_page.dart';
 import 'package:flutter_sns/write/presentation/screens/login/login_page.dart';
 import 'package:go_router/go_router.dart';
 
+// ✅ 프로필 탭의 State에 접근하기 위한 전역 키 (타입 생략: private State 노출 없이 사용)
+final GlobalKey profileTabKey = GlobalKey();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false, // 디버그 배너 숨기기
-      routerConfig: router, // 라우터 설정
-      theme: AppTheme.lightTheme, // 라이트 테마
-      darkTheme: AppTheme.darkTheme, // 다크 테마
-      themeMode: ThemeMode.system, // 시스템 테마 모드
-      scaffoldMessengerKey: SnackBarMessageService.scaffoldKey, // 스낵메시지
+      debugShowCheckedModeBanner: false,
+      routerConfig: router,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      scaffoldMessengerKey: SnackBarMessageService.scaffoldKey,
     );
   }
 }
 
 // 라우터 전역 설정
 final GoRouter router = GoRouter(
-  initialLocation: '/splash', // 스플래시 화면 먼저
+  initialLocation: '/splash',
   routes: [
     // Splash 화면
     GoRoute(
@@ -38,16 +41,19 @@ final GoRouter router = GoRouter(
       name: 'splash',
       builder: (context, state) => const SplashPage(),
     ),
+
     GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginPage(),
     ),
+
     GoRoute(
       path: '/login-detail',
       name: 'login_detail',
       builder: (context, state) => const LoginDetailPage(),
     ),
+
     // 메인 앱 구조 (하단 탭 포함)
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -62,7 +68,7 @@ final GoRouter router = GoRouter(
               name: 'home',
               builder: (context, state) => const HomePage(),
               routes: [
-                // 상세 페이지는 상대 경로 사용!
+                // 상세 페이지는 상대 경로 사용
                 GoRoute(
                   path: 'post/:postId',
                   name: 'post_detail',
@@ -82,12 +88,13 @@ final GoRouter router = GoRouter(
             GoRoute(
               path: '/profile',
               name: 'profile',
-              builder: (context, state) => ProfilePage(),
+              // ✅ 전역 키를 주입해 state 접근 가능하게
+              builder: (context, state) => ProfilePage(key: profileTabKey),
               routes: [
                 GoRoute(
-                  path: 'edit', // 상대 경로
+                  path: 'edit',
                   name: 'profile_edit',
-                  builder: (context, state) => ProfileEditPage(),
+                  builder: (context, state) => const ProfileEditPage(),
                 ),
               ],
             ),
@@ -95,6 +102,7 @@ final GoRouter router = GoRouter(
         ),
       ],
     ),
+
     GoRoute(
       path: '/write',
       name: 'write',
