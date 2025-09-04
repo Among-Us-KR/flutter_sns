@@ -31,7 +31,6 @@ class PostContentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // TODO: 실제 태그 데이터로 교체 필요
     final tags = [
       post.category,
       post.mode == 'punch' ? '팩폭해줘' : '공감해줘',
@@ -50,7 +49,7 @@ class PostContentView extends StatelessWidget {
                     child: Text(
                       '#$tag',
                       style: textTheme.labelMedium?.copyWith(
-                        color: AppColors.n600,
+                        color: AppColors.brand,
                       ),
                     ),
                   ),
@@ -91,7 +90,18 @@ class PostContentView extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 본문 내용
-          Text(post.content, style: AppTypography.body(AppColors.n800)),
+          // Text(post.content, style: AppTypography.body(AppColors.n800)),
+          Text(
+            post.content,
+            style: AppTypography.style(
+              AppTypography.s16,
+              color: AppColors.n800,
+            ),
+
+            // style: AppTypography.(AppColors.n800).copyWith(
+            //   fontSize: 18.0, // 원하는 폰트 크기로 조절하세요.
+            // ),
+          ),
           const SizedBox(height: 24),
 
           // 이미지
