@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_sns/write/domain/entities/posts.dart' as domain;
 
 // 게시글 정보 DTO
 class PostsModel {
@@ -123,6 +124,24 @@ class PostsModel {
       reportCount: reportCount ?? this.reportCount,
     );
   }
+
+  // PostsModel을 도메인 엔티티로 변환하는 toDomain() 메서드
+  domain.Posts toDomain() {
+    return domain.Posts(
+      id: id,
+      authorId: authorId,
+      author: author.toDomain(),
+      category: category,
+      mode: mode,
+      title: title,
+      content: content,
+      images: images,
+      stats: stats.toDomain(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      reportCount: reportCount,
+    );
+  }
 }
 
 // 작성자 정보 클래스
@@ -141,6 +160,11 @@ class Author {
 
   Map<String, dynamic> toJson() {
     return {'nickname': nickname, 'profileImageUrl': profileImageUrl};
+  }
+
+  // Author DTO를 도메인 엔티티로 변환하는 toDomain() 메서드 추가
+  domain.Author toDomain() {
+    return domain.Author(nickname: nickname, profileImageUrl: profileImageUrl);
   }
 }
 
@@ -174,6 +198,14 @@ class PostStats {
     return PostStats(
       likesCount: likesCount,
       commentsCount: commentsCount + increment,
+    );
+  }
+
+  // PostStats DTO를 도메인 엔티티로 변환하는 toDomain() 메서드 추가
+  domain.PostStats toDomain() {
+    return domain.PostStats(
+      likesCount: likesCount,
+      commentsCount: commentsCount,
     );
   }
 }

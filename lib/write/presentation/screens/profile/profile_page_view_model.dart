@@ -1,23 +1,34 @@
-import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart' as fa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fa;
+import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/entities/users.dart' as domain;
+import 'package:flutter_sns/write/domain/entities/comments.dart'
+    as comments_domain;
+import 'package:flutter_sns/write/domain/repository/post_repository.dart';
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/get_user_profile_usecase.dart';
-
 import 'package:flutter_sns/write/domain/usecases/profile_usecase/update_user_stats_usecase.dart';
 
 //State
 class ProfileState {
   final domain.User? user;
 
-  // 로딩 상태
-  final bool isLoading;
+  // 내가 쓴 글, 좋아요 누른 글 목록
+  final List<Posts> userPosts;
+  final List<Posts> userLikedPosts;
+  // '내가 댓글 단 글' 목록을 댓글 엔티티로 변경
+  final Map<String, comments_domain.Comments> userComments;
+  final Map<String, String> userCommentedPostTitles;
 
+  final bool isLoading;
   final String? errorMessage;
   final String? successMessage;
 
   const ProfileState({
     this.user,
+    this.userPosts = const [],
+    this.userLikedPosts = const [],
+    this.userComments = const {},
+    this.userCommentedPostTitles = const {},
     this.isLoading = false,
     this.errorMessage,
     this.successMessage,
@@ -25,12 +36,21 @@ class ProfileState {
 
   ProfileState copyWith({
     domain.User? user,
+    List<Posts>? userPosts,
+    List<Posts>? userLikedPosts,
+    Map<String, comments_domain.Comments>? userComments,
+    Map<String, String>? userCommentedPostTitles,
     bool? isLoading,
     String? errorMessage,
     String? successMessage,
   }) {
     return ProfileState(
       user: user ?? this.user,
+      userPosts: userPosts ?? this.userPosts,
+      userLikedPosts: userLikedPosts ?? this.userLikedPosts,
+      userComments: userComments ?? this.userComments,
+      userCommentedPostTitles:
+          userCommentedPostTitles ?? this.userCommentedPostTitles,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       successMessage: successMessage,
@@ -41,15 +61,16 @@ class ProfileState {
 //ViewModel
 class ProfileViewModel extends StateNotifier<ProfileState> {
   final GetUserProfileUseCase _getUserProfile;
-
   final UpdateUserStatsUseCase _updateUserStats;
+  final PostRepository _postRepository;
 
   ProfileViewModel({
     required GetUserProfileUseCase getUserProfile,
     required UpdateUserStatsUseCase updateUserStats,
+    required PostRepository postRepository,
   }) : _getUserProfile = getUserProfile,
        _updateUserStats = updateUserStats,
-
+       _postRepository = postRepository,
        super(const ProfileState());
 
   // 현재 로그인 사용자 로드
@@ -72,7 +93,6 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
       );
       final u = await _getUserProfile.execute(uid);
 
-      // 드래프트 초기화
       state = state.copyWith(isLoading: false, user: u);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -97,6 +117,56 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
     final updatedUser = state.user!.copyWith(stats: newStats);
     state = state.copyWith(user: updatedUser);
+  }
+
+  /// 사용자가 작성한 게시글을 불러옵니다.
+  Future<void> loadUserPosts() async {
+    if (state.user == null) return;
+    try {
+      final posts = await _postRepository.getUserPosts(state.user!.uid);
+      state = state.copyWith(userPosts: posts);
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  /// 사용자가 좋아요를 누른 게시글을 불러옵니다.
+  Future<void> loadUserLikedPosts() async {
+    if (state.user == null) return;
+    try {
+      final likedPosts = await _postRepository.getUserLikedPosts(
+        state.user!.uid,
+      );
+      state = state.copyWith(userLikedPosts: likedPosts);
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  /// 사용자가 댓글을 단 댓글을 불러옵니다.
+  Future<void> loadUserComments() async {
+    if (state.user == null) return;
+    try {
+      final comments = await _postRepository.getUserComments(state.user!.uid);
+      final postTitles = <String, String>{};
+
+      // 댓글 목록을 순회하며 각 댓글의 게시글 제목을 가져옴
+      for (final comment in comments) {
+        final post = await _postRepository.getPostById(comment.postId);
+        if (post != null) {
+          postTitles[comment.id] = post.title;
+        }
+      }
+
+      // 댓글 목록과 게시글 제목을 함께 상태에 저장
+      final commentsMap = {for (var item in comments) item.id: item};
+      state = state.copyWith(
+        userComments: commentsMap,
+        userCommentedPostTitles: postTitles,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
   }
 
   /// 메시지 클리어 (Snackbar 이후)

@@ -35,7 +35,7 @@ class ProfileTabBar extends StatelessWidget {
                 tabs: const [
                   Tab(height: 32, child: Text('내 글')),
                   Tab(height: 32, child: Text('내 댓글')),
-                  Tab(height: 32, child: Text('내 공감')),
+                  Tab(height: 32, child: Text('내 좋아요')),
                 ],
               ),
             ),

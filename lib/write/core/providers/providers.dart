@@ -142,6 +142,7 @@ final profileViewModelProvider =
       final vm = ProfileViewModel(
         getUserProfile: ref.watch(getUserProfileUseCaseProvider),
         updateUserStats: ref.watch(updateUserStatsUseCaseProvider),
+        postRepository: ref.watch(postRepositoryProvider), // 이 줄이 추가되었습니다.
       );
       if (uid == null) {
         Future.microtask(() => vm.loadCurrentUser());
