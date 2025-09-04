@@ -1,5 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_sns/write/presentation/widgets/privacy_policy_page.dart';
+import 'package:flutter_sns/write/presentation/widgets/terms_of_service_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -147,16 +150,98 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 16),
             const Text('지친 현생을 위한 익명 휴게소', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 32),
-            CheckboxListTile(
-              title: const Text(
-                '서비스 이용 약관 및 개인정보 처리방침에 동의합니다.',
-                style: TextStyle(fontSize: 12),
-              ),
-              value: _isAgree,
-              onChanged: (val) => setState(() => _isAgree = val ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
+            // ✅ 체크박스 + RichText
+           Row(
+  crossAxisAlignment: CrossAxisAlignment.center, // 중앙 정렬
+  children: [
+    Checkbox(
+      value: _isAgree,
+      onChanged: (val) => setState(() => _isAgree = val ?? false),
+    ),
+    Expanded(
+      child: Text.rich(
+        TextSpan(
+          text: '서비스 ',
+          style: const TextStyle(fontSize: 12, color: Colors.black),
+          children: [
+            TextSpan(
+              text: '이용약관',
+              style: const TextStyle(
+                  color: Colors.black, decoration: TextDecoration.underline),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TermsOfServicePage(),
+                    ),
+                  );
+                },
             ),
-            ElevatedButton.icon(
+            const TextSpan(text: ' 및 '),
+            TextSpan(
+              text: '개인정보처리방침',
+              style: const TextStyle(
+                  color: Colors.black, decoration: TextDecoration.underline),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyPage(),
+                    ),
+                  );
+                },
+            ),
+            const TextSpan(text: '에 동의합니다.'),
+          ],
+        ),
+        textAlign: TextAlign.start,
+        textHeightBehavior: const TextHeightBehavior(
+          applyHeightToFirstAscent: false,
+          applyHeightToLastDescent: false,
+        ),
+      ),
+    ),
+  ],
+),
+            // CheckboxListTile(
+            //   title: const Text(
+            //     '서비스 이용 약관 및 개인정보 처리방침에 동의합니다.',
+            //     style: TextStyle(fontSize: 12),
+            //   ),
+            //   value: _isAgree,
+            //   onChanged: (val) => setState(() => _isAgree = val ?? false),
+            //   controlAffinity: ListTileControlAffinity.leading,
+            // ),
+            // TextButton(style: TextButton.styleFrom(
+            //   padding: EdgeInsets.zero, // 기본 내부 여백 제거
+            //   minimumSize: const Size(0, 0), // 최소 크기 제한 해제
+            //   tapTargetSize: MaterialTapTargetSize.shrinkWrap, // 터치 영역 최소화
+            // ),
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+            //     );
+            //   },
+            //   child: const Text("개인정보 처리방침 보기"),
+            // ),   
+            // TextButton(
+            //   style: TextButton.styleFrom(
+            //   padding: EdgeInsets.zero, // 기본 내부 여백 제거
+            //   minimumSize: const Size(0, 0), // 최소 크기 제한 해제
+            //   tapTargetSize: MaterialTapTargetSize.shrinkWrap, // 터치 영역 최소화
+            // ),
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => const TermsOfServicePage()),
+            //     );
+            //   },
+            //   child: const Text("서비스 이용약관 보기"),
+            // ),
+              ElevatedButton.icon(
               onPressed: _isLoading ? null : _signInWithGoogle,
               icon: const Icon(Icons.login),
               label: _isLoading
@@ -169,7 +254,7 @@ class _LoginPageState extends State<LoginPage> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),
-            ),
+            ),    
           ],
         ),
       ),
