@@ -85,9 +85,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             ? ListView(
                 // RefreshIndicator는 스크롤러 필요
                 children: [
-                  SizedBox(height: 240),
-                  Center(child: CircularProgressIndicator()),
-                  SizedBox(height: 240),
+                  const SizedBox(height: 240),
+                  const Center(child: CircularProgressIndicator()),
+                  const SizedBox(height: 240),
                 ],
               )
             : profileState.errorMessage != null
@@ -292,7 +292,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       items: profileState.userPosts,
                       emptyMessage: '아직 작성한 글이 없어요\n첫 번째 글을 던져보세요!',
                       emptyIcon: Icons.edit_note,
-                      itemBuilder: (post) => PostCard(post: post),
+                      itemBuilder: (post) => PostCard(
+                        post: post,
+                        onTap: () {
+                          context.pushNamed(
+                            'post_detail',
+                            pathParameters: {'postId': post.id},
+                          );
+                        },
+                      ),
                       onRefresh: _refreshAll,
                     ),
 
@@ -322,7 +330,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       items: profileState.userLikedPosts,
                       emptyMessage: '아직 공감한 글이 없어요\n마음에 드는 글에 공감을 눌러보세요!',
                       emptyIcon: Icons.favorite_outline,
-                      itemBuilder: (post) => PostCard(post: post),
+                      itemBuilder: (post) => PostCard(
+                        post: post,
+                        onTap: () {
+                          context.pushNamed(
+                            'post_detail',
+                            pathParameters: {'postId': post.id},
+                          );
+                        },
+                      ),
                       onRefresh: _refreshAll,
                     ),
                   ],
