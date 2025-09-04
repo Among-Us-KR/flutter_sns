@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/write/presentation/providers/post_interaction_providers.dart';
 
 // 좋아요 버튼 위젯
@@ -22,6 +23,9 @@ class LikeButton extends ConsumerWidget {
     final isLikedAsyncValue = ref.watch(isPostLikedProvider(postId));
     final likeCountAsyncValue = ref.watch(postLikesCountProvider(postId));
 
+    final isLiked = isLikedAsyncValue.valueOrNull ?? false;
+    final likeCountColor = isLiked ? AppColors.brand : AppColors.n100;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -29,7 +33,7 @@ class LikeButton extends ConsumerWidget {
           icon: isLikedAsyncValue.when(
             data: (isLiked) => Image.asset(
               isLiked
-                  ? 'assets/icons/heart_white.png'
+                  ? 'assets/icons/heart_orange.png'
                   : 'assets/icons/heart_white_empty.png',
               width: 32,
               height: 32,
@@ -46,11 +50,11 @@ class LikeButton extends ConsumerWidget {
         likeCountAsyncValue.when(
           data: (count) => Text(
             '$count',
-            style: textTheme.labelLarge?.copyWith(color: Colors.white),
+            style: textTheme.labelLarge?.copyWith(color: likeCountColor),
           ),
           loading: () => Text(
             '$initialLikeCount',
-            style: textTheme.labelLarge?.copyWith(color: Colors.white),
+            style: textTheme.labelLarge?.copyWith(color: likeCountColor),
           ),
           error: (err, stack) => Text(
             '!',
