@@ -208,3 +208,20 @@ final selectedImagesCountProvider = Provider<int>((ref) {
 final availableCategoriesProvider = Provider<List<String>>((ref) {
   return Category.values.map((category) => category.displayName).toList();
 });
+
+/// 현재 로그인된 사용자의 프로필 이미지 URL을 스트림으로 제공하는 프로바이더
+final currentUserProfileProvider = StreamProvider<String?>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    // 로그인되지 않은 경우, null 값을 가진 스트림을 반환합니다.
+    return Stream.value(null);
+  }
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((snapshot) {
+        // 사용자 문서가 없거나 profileImageUrl 필드가 없을 경우 null을 반환합니다.
+        return snapshot.data()?['profileImageUrl'] as String?;
+      });
+});

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_sns/write/core/providers/providers.dart';
 import 'package:flutter_sns/theme/theme.dart';
 import 'package:flutter_sns/write/presentation/screens/contents_detail/widgets/comment_service.dart';
 
@@ -69,6 +70,8 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. 현재 사용자 프로필 이미지 URL을 가져옵니다.
+    final profileImageUrlAsync = ref.watch(currentUserProfileProvider);
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -78,7 +81,28 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
         ),
         child: Row(
           children: [
-            const CircleAvatar(radius: 16, backgroundColor: AppColors.n100),
+            // 2. 프로필 이미지 URL 상태에 따라 CircleAvatar를 빌드합니다.
+            profileImageUrlAsync.when(
+              data: (profileImageUrl) => CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.n100,
+                backgroundImage: profileImageUrl != null
+                    ? NetworkImage(profileImageUrl)
+                    : null,
+                child: profileImageUrl == null
+                    ? const Icon(Icons.person, size: 20, color: AppColors.n400)
+                    : null,
+              ),
+              loading: () => const CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.n100,
+              ),
+              error: (err, stack) => const CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.n100,
+                child: Icon(Icons.error),
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: TextField(

@@ -42,26 +42,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
     // 뷰모델 상태를 watch
     final profileState = ref.watch(profileViewModelProvider(null));
-    final viewModel = ref.read(profileViewModelProvider(null).notifier);
-
-    // ✅ 위젯 빌드가 완료된 후에 데이터 로드 함수를 호출하도록 수정
-    // 이 방법은 "Tried to modify a provider while the widget tree was building" 오류를 해결합니다.
-    ref.listen<ProfileState>(profileViewModelProvider(null), (previous, next) {
-      if (previous?.user == null && next.user != null) {
-        viewModel.loadUserPosts();
-        viewModel.loadUserLikedPosts();
-        viewModel.loadUserComments();
-      }
-    });
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: profileState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : profileState.errorMessage != null
-          ? Center(
-              child: Text('프로필을 불러오는데 실패했습니다: ${profileState.errorMessage}'),
-            )
+          ? Center(child: Text(profileState.errorMessage!))
           : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [

@@ -171,7 +171,7 @@ class ContentsDetailPage extends ConsumerWidget {
                           content: Text(
                             e.toString().contains('Exception: ')
                                 ? e.toString().split('Exception: ')[1]
-                                : '신고 처리 중 오류가 발생했습니다.',
+                                : '게시물이 신고되었습니다.',
                           ),
                           backgroundColor: Colors.red,
                         ),
