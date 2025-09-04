@@ -126,39 +126,6 @@ class _WritePageState extends ConsumerState<WritePage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton(
-              // 편집 모드에 따라 호출할 메서드 변경
-              onPressed: canPost
-                  ? () {
-                      if (state.isEditMode) {
-                        vm.updatePost();
-                      } else {
-                        vm.createPost();
-                      }
-                    }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cs.secondary,
-                foregroundColor: cs.onSecondary,
-                minimumSize: const Size(52, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              child: Text(
-                // 편집 모드에 따라 버튼 텍스트 변경
-                state.isEditMode ? '수정' : '완료',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: cs.onSecondary,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       // ✅ 로딩 중일 때 로딩 인디케이터 표시
       body: _isLoading
