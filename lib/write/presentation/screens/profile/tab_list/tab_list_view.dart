@@ -6,6 +6,7 @@ class TabListView<T> extends StatelessWidget {
   final Widget Function(T item) itemBuilder;
   final String emptyMessage;
   final IconData? emptyIcon;
+  final Future<void> Function()? onRefresh;
 
   const TabListView({
     super.key,
@@ -13,6 +14,7 @@ class TabListView<T> extends StatelessWidget {
     required this.itemBuilder,
     required this.emptyMessage,
     this.emptyIcon,
+    this.onRefresh,
   });
 
   @override
@@ -22,6 +24,7 @@ class TabListView<T> extends StatelessWidget {
     }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: items.length,
       itemBuilder: (context, index) => itemBuilder(items[index]), // <- 래핑
       separatorBuilder: (context, _) => Divider(
