@@ -26,7 +26,7 @@ class PostCard extends StatelessWidget {
           // 해시태그 (카테고리 + 모드)
           Row(
             children: [
-              _buildHashtag(context, '#${post.category}'),
+              _buildHashtag(context, post.category),
               const SizedBox(width: 3),
               _buildHashtag(context, post.mode),
             ],
@@ -95,9 +95,19 @@ class PostCard extends StatelessWidget {
 
   Widget _buildHashtag(BuildContext context, String tag) {
     final theme = Theme.of(context);
+    String displayTag;
+
+    // 모드 태그는 '팩폭' 또는 '공감'으로 표시
+    if (tag == 'punch') {
+      displayTag = '#팩폭해줘';
+    } else if (tag == 'empathy') {
+      displayTag = '#공감해줘';
+    } else {
+      displayTag = '#$tag';
+    }
 
     return Text(
-      tag,
+      displayTag,
       style: theme.textTheme.labelMedium?.copyWith(color: AppColors.n600),
     );
   }
