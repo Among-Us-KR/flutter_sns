@@ -30,16 +30,7 @@ class ContentsDetailPage extends ConsumerWidget {
         // 스크롤 시 앱바 색상이 변하는 것을 방지
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        // 데이터 로딩 상태에 따라 제목을 다르게 표시
-        title: postAsyncValue.when(
-          data: (post) => Text(
-            post.title,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          loading: () => const Text(''),
-          error: (_, __) => const Text('오류'),
-        ),
+        title: const Text(''), // 제목을 빈 텍스트로 변경하여 공간만 차지하도록 합니다.
         actions: [
           IconButton(
             icon: const Icon(Icons.more_horiz),
