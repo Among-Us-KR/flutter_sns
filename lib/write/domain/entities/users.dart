@@ -56,27 +56,31 @@ class User {
 class UserStats {
   final int postsCount;
   final int commentsCount;
-  final int empathyReceived; // 추가된 필드
-  final int punchReceived; // 추가된 필드
+  final int likesCount;
+  final int commentsReceived;
+  final int likesReceived;
 
   const UserStats({
     this.postsCount = 0,
     this.commentsCount = 0,
-    this.empathyReceived = 0,
-    this.punchReceived = 0,
+    this.likesCount = 0,
+    this.commentsReceived = 0,
+    this.likesReceived = 0,
   });
 
   UserStats copyWith({
     int? postsCount,
     int? commentsCount,
-    int? empathyReceived,
-    int? punchReceived,
+    int? likesCount,
+    int? commentsReceived,
+    int? likesReceived,
   }) {
     return UserStats(
       postsCount: postsCount ?? this.postsCount,
       commentsCount: commentsCount ?? this.commentsCount,
-      empathyReceived: empathyReceived ?? this.empathyReceived,
-      punchReceived: punchReceived ?? this.punchReceived,
+      likesCount: likesCount ?? this.likesCount,
+      commentsReceived: commentsReceived ?? this.commentsReceived,
+      likesReceived: likesReceived ?? this.likesReceived,
     );
   }
 }

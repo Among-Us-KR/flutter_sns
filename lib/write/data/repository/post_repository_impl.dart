@@ -1,10 +1,13 @@
-// data/repositories/post_repository_impl.dart
 import 'dart:io';
-import 'package:flutter_sns/write/data/datasources/firebase_user_datasource.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_sns/write/data/datasources/user_datasource.dart';
 import 'package:flutter_sns/write/domain/entities/posts.dart' as domain;
 import 'package:flutter_sns/write/data/models/posts_model.dart' as dto;
+import 'package:flutter_sns/write/domain/entities/posts.dart';
 import 'package:flutter_sns/write/domain/repository/post_repository.dart';
 import '../datasources/firebase_post_datasource.dart';
+import 'package:flutter_sns/write/domain/entities/comments.dart'
+    as comments_domain;
 
 /// PostRepository 인터페이스를 구현하는 클래스
 /// 데이터 소스(Firebase)에서 데이터를 가져와 도메인 엔티티로 변환하는 역할
@@ -12,7 +15,7 @@ class PostRepositoryImpl implements PostRepository {
   PostRepositoryImpl(this._postDataSource, this._userDataSource);
 
   final FirebasePostDataSource _postDataSource;
-  final FirebaseUserDataSource _userDataSource;
+  final UserDatasource _userDataSource;
 
   @override
   Future<String> createPost(domain.Posts post) async {
@@ -42,7 +45,7 @@ class PostRepositoryImpl implements PostRepository {
       // 데이터 소스를 통해 Firebase에 저장
       final postId = await _postDataSource.createPost(postModel);
       // 사용자 통계 업데이트 (postsCount +1)
-      await _userDataSource.incrementUserPostsCount(post.authorId);
+      await _userDataSource.incrementPostsCount(post.authorId);
 
       return postId;
     } catch (e) {
@@ -93,7 +96,7 @@ class PostRepositoryImpl implements PostRepository {
         await _postDataSource.deletePost(postId);
 
         // 사용자 통계 업데이트 (postsCount -1)
-        await _userDataSource.decrementUserPostsCount(post.authorId);
+        await _userDataSource.decrementPostsCount(post.authorId);
       }
     } catch (e) {
       throw Exception('게시글 삭제 중 오류 발생: $e');
@@ -102,12 +105,7 @@ class PostRepositoryImpl implements PostRepository {
 
   @override
   Future<List<String>> uploadImages(List<File> images) async {
-    // try {
-    // 단순 전달 (변환 불필요)
     return await _postDataSource.uploadImages(images);
-    // } catch (e) {
-    //   throw Exception('이미지 업로드 중 오류 발생: $e');
-    // }
   }
 
   @override
@@ -146,11 +144,87 @@ class PostRepositoryImpl implements PostRepository {
   }
 
   @override
-  Future<void> decrementUserPostsCount(String uid) async {
+  Future<List<domain.Posts>> getUserPosts(String userId) async {
     try {
-      await _userDataSource.decrementUserPostsCount(uid);
+      final postModels = await _postDataSource.getPostsByUserId(userId);
+      return postModels.map((e) => e.toDomain()).toList();
     } catch (e) {
-      throw Exception('사용자 게시글 수 감소 중 오류 발생: $e');
+      throw Exception('사용자가 작성한 게시글을 불러오는 중 오류 발생: $e');
+    }
+  }
+
+  @override
+  Future<List<domain.Posts>> getUserLikedPosts(String userId) async {
+    try {
+      final likedPostIds = await _postDataSource.getLikedPostIds(userId);
+      if (likedPostIds.isEmpty) {
+        return [];
+      }
+      final likedPostModels = await _postDataSource.getPostsByIds(likedPostIds);
+      return likedPostModels.map((e) => e.toDomain()).toList();
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        return [];
+      }
+      rethrow;
+    } catch (e) {
+      throw Exception('사용자가 좋아요를 누른 게시글을 불러오는 중 오류 발생: $e');
+    }
+  }
+
+  @override
+  Future<List<Posts>> getUserCommentedPosts(String userId) async {
+    try {
+      final commentedPostIds = await _postDataSource.getCommentedPostIds(
+        userId,
+      );
+      if (commentedPostIds.isEmpty) {
+        return [];
+      }
+
+      final commentedPostModels = await _postDataSource.getPostsByIds(
+        commentedPostIds,
+      );
+      return commentedPostModels.map((e) => e.toDomain()).toList();
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        return [];
+      }
+      rethrow;
+    } catch (e) {
+      throw Exception('사용자가 댓글을 단 게시글을 불러오는 중 오류 발생: $e');
+    }
+  }
+
+  @override
+  Future<List<comments_domain.Comments>> getUserComments(String userId) async {
+    try {
+      final commentsData = await _postDataSource.getUserComments(userId);
+      // Firebase에서 가져온 Map 데이터를 Comments 엔티티로 변환합니다.
+      return commentsData
+          .map(
+            (data) => comments_domain.Comments(
+              id: data['id'] as String,
+              postId: data['postId'] as String,
+              authorId: data['authorId'] as String,
+              author: comments_domain.Author(
+                nickname: data['author']['nickname'] as String,
+                profileImageUrl: data['author']['profileImageUrl'] as String?,
+              ),
+              content: data['content'] as String,
+              createdAt: (data['createdAt'] as Timestamp).toDate(),
+              updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+              reportCount: data['reportCount'] as int,
+            ),
+          )
+          .toList();
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        return [];
+      }
+      rethrow;
+    } catch (e) {
+      throw Exception('사용자가 작성한 댓글을 불러오는 중 오류 발생: $e');
     }
   }
 }

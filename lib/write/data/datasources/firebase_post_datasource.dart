@@ -21,6 +21,10 @@ class FirebasePostDataSource {
 
   CollectionReference<Map<String, dynamic>> get _posts =>
       _firestore.collection('posts');
+  CollectionReference<Map<String, dynamic>> get _comments =>
+      _firestore.collection('comments');
+  CollectionReference<Map<String, dynamic>> get _likes =>
+      _firestore.collection('likes');
 
   /// 게시글 생성: createdAt/updatedAt 서버시간으로 강제 세팅
   Future<String> createPost(PostsModel post) async {
@@ -124,6 +128,89 @@ class FirebasePostDataSource {
       await ref.delete();
     } catch (_) {
       // 삭제 실패는 무시 (로그만 남기고 넘어가도 됨)
+    }
+  }
+
+  /// 사용자가 작성한 모든 게시글을 조회
+  Future<List<PostsModel>> getPostsByUserId(String userId) async {
+    try {
+      final querySnapshot = await _posts
+          .where('authorId', isEqualTo: userId)
+          .get();
+      return querySnapshot.docs
+          .map((doc) => PostsModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('사용자 게시글 조회 실패: $e');
+    }
+  }
+
+  /// 사용자가 좋아요를 누른 모든 게시글 ID를 조회
+  Future<List<String>> getLikedPostIds(String userId) async {
+    try {
+      final querySnapshot = await _likes
+          .where('userId', isEqualTo: userId)
+          .get();
+      return querySnapshot.docs
+          .map((doc) => doc.data()['postId'] as String)
+          .toList();
+    } catch (e) {
+      throw Exception('사용자 좋아요 게시글 ID 조회 실패: $e');
+    }
+  }
+
+  /// 사용자가 댓글을 단 모든 게시글 ID를 조회
+  Future<List<String>> getCommentedPostIds(String userId) async {
+    try {
+      final querySnapshot = await _comments
+          .where('userId', isEqualTo: userId)
+          .get();
+      // 중복된 postId를 제거하기 위해 Set을 사용
+      return querySnapshot.docs
+          .map((doc) => doc.data()['postId'] as String)
+          .toSet()
+          .toList();
+    } catch (e) {
+      throw Exception('사용자 댓글 게시글 ID 조회 실패: $e');
+    }
+  }
+
+  /// 주어진 게시글 ID 목록에 해당하는 모든 게시글을 조회
+  Future<List<PostsModel>> getPostsByIds(List<String> postIds) async {
+    if (postIds.isEmpty) {
+      return [];
+    }
+    // Firestore의 `whereIn` 쿼리에는 최대 10개의 값만 포함될 수 있으므로, 목록을 나누어 처리
+    const chunkSize = 10;
+    List<PostsModel> posts = [];
+    for (int i = 0; i < postIds.length; i += chunkSize) {
+      final chunk = postIds.sublist(
+        i,
+        i + chunkSize > postIds.length ? postIds.length : i + chunkSize,
+      );
+      final querySnapshot = await _posts
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      posts.addAll(
+        querySnapshot.docs.map((doc) => PostsModel.fromFirestore(doc)).toList(),
+      );
+    }
+    return posts;
+  }
+
+  /// 사용자가 작성한 모든 댓글을 조회
+  Future<List<Map<String, dynamic>>> getUserComments(String userId) async {
+    try {
+      final querySnapshot = await _comments
+          .where('authorId', isEqualTo: userId)
+          .get();
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      throw Exception('사용자 댓글 조회 실패: $e');
     }
   }
 }

@@ -1,31 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_sns/theme/theme.dart';
+import 'package:flutter_sns/write/domain/entities/posts.dart';
 
 // 내가 쓴 글 / 좋아요 누른 글 아이템
 class PostCard extends StatelessWidget {
-  final String title;
-  final String content;
-  final String category;
-  final String mode; // 'punch' or 'empathy'
-  final String? imageUrl;
-  final String date;
-  final int commentCount;
+  final Posts post;
 
-  const PostCard({
-    super.key,
-    required this.title,
-    required this.content,
-    required this.category,
-    required this.mode,
-    this.imageUrl,
-    required this.date,
-    required this.commentCount,
-  });
+  const PostCard({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final String? imageUrl = post.images.isNotEmpty ? post.images.first : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -38,23 +26,22 @@ class PostCard extends StatelessWidget {
           // 해시태그 (카테고리 + 모드)
           Row(
             children: [
-              _buildHashtag(context, '#$category'),
-              SizedBox(width: 3),
-              _buildHashtag(context, mode == 'punch' ? '#팩폭해줘' : '#공감해줘'),
+              _buildHashtag(context, '#${post.category}'),
+              const SizedBox(width: 3),
+              _buildHashtag(context, post.mode),
             ],
           ),
 
           // 게시글 내용
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      post.title,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -63,7 +50,7 @@ class PostCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      content,
+                      post.content,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         height: 1.4,
@@ -76,7 +63,7 @@ class PostCard extends StatelessWidget {
               ),
               if (imageUrl != null) ...[
                 const SizedBox(width: 12),
-                _buildThumbnail(context),
+                _buildThumbnail(context, imageUrl),
               ],
             ],
           ),
@@ -88,13 +75,13 @@ class PostCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                date,
+                DateFormat('yyyy-MM-dd').format(post.createdAt),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: AppColors.n600,
                 ),
               ),
               Text(
-                '댓글 $commentCount',
+                '댓글 ${post.stats.commentsCount}',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: AppColors.n600,
                 ),
@@ -115,7 +102,7 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail(BuildContext context) {
+  Widget _buildThumbnail(BuildContext context, String imageUrl) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -127,8 +114,8 @@ class PostCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.asset(
-          imageUrl!,
+        child: Image.network(
+          imageUrl,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Container(

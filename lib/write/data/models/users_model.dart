@@ -123,25 +123,45 @@ class PrivacyConsent {
   }
 }
 
+// 사용자 통계 엔티티
 class UserStats {
   final int postsCount;
   final int commentsCount;
-  final int empathyReceived;
-  final int punchReceived;
+  final int likesCount;
+  final int commentsReceived;
+  final int likesReceived;
 
-  UserStats({
-    required this.postsCount,
-    required this.commentsCount,
-    required this.empathyReceived,
-    required this.punchReceived,
+  const UserStats({
+    this.postsCount = 0,
+    this.commentsCount = 0,
+    this.likesCount = 0,
+    this.commentsReceived = 0,
+    this.likesReceived = 0,
   });
+
+  UserStats copyWith({
+    int? postsCount,
+    int? commentsCount,
+    int? likesCount,
+    int? commentsReceived,
+    int? likesReceieved,
+  }) {
+    return UserStats(
+      postsCount: postsCount ?? this.postsCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      likesCount: likesCount ?? this.likesCount,
+      commentsReceived: commentsReceived ?? this.commentsReceived,
+      likesReceived: likesReceieved ?? this.likesReceived,
+    );
+  }
 
   factory UserStats.fromJson(Map<String, dynamic> json) {
     return UserStats(
       postsCount: json['postsCount'] ?? 0,
       commentsCount: json['commentsCount'] ?? 0,
-      empathyReceived: json['empathyReceived'] ?? 0,
-      punchReceived: json['punchReceived'] ?? 0,
+      likesCount: json['likesCount'] ?? 0,
+      commentsReceived: json['commentsRecived'] ?? 0,
+      likesReceived: json['likesRecieved'] ?? 0,
     );
   }
 
@@ -149,22 +169,9 @@ class UserStats {
     return {
       'postsCount': postsCount,
       'commentsCount': commentsCount,
-      'empathyReceived': empathyReceived,
-      'punchReceived': punchReceived,
+      'likesCount': likesCount,
+      'commentsReceived': commentsReceived,
+      'likesReceived': likesReceived,
     };
-  }
-
-  UserStats copyWith({
-    int? postsCount,
-    int? commentsCount,
-    int? empathyReceived,
-    int? punchReceived,
-  }) {
-    return UserStats(
-      postsCount: postsCount ?? this.postsCount,
-      commentsCount: commentsCount ?? this.commentsCount,
-      empathyReceived: empathyReceived ?? this.empathyReceived,
-      punchReceived: punchReceived ?? this.punchReceived,
-    );
   }
 }
